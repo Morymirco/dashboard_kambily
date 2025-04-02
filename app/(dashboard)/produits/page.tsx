@@ -185,6 +185,53 @@ export default function ProduitsPage() {
     }
   }
 
+  // Calcul des indices pour la pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentProducts = filteredAndSortedProducts.products
+  const totalPages = filteredAndSortedProducts.totalPages
+
+  // Fonction pour changer de page
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber)
+  }
+
+  // Générer les numéros de page à afficher
+  const getPageNumbers = () => {
+    const pageNumbers = []
+    const maxPagesToShow = 5
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i)
+        }
+        pageNumbers.push("...")
+        pageNumbers.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1)
+        pageNumbers.push("...")
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i)
+        }
+      } else {
+        pageNumbers.push(1)
+        pageNumbers.push("...")
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i)
+        }
+        pageNumbers.push("...")
+        pageNumbers.push(totalPages)
+      }
+    }
+
+    return pageNumbers
+  }
+
   return (
     <div className="p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -383,14 +430,14 @@ export default function ProduitsPage() {
                           </TableCell>
                         </TableRow>
                       ))
-                  ) : filteredAndSortedProducts.products.length === 0 ? (
+                  ) : currentProducts.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="h-24 text-center">
                         Aucun produit trouvé
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredAndSortedProducts.products.map((product) => (
+                    currentProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -452,6 +499,55 @@ export default function ProduitsPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Info sur les résultats */}
+      <div className="text-sm text-gray-500 text-center">
+        {filteredAndSortedProducts.products.length === 0 ? (
+          <p>Aucun produit trouvé</p>
+        ) : (
+          <p>
+            Affichage de {indexOfFirstItem + 1} à{" "}
+            {Math.min(indexOfLastItem, filteredAndSortedProducts.totalItems)} sur{" "}
+            {filteredAndSortedProducts.totalItems} produits
+          </p>
+        )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-center items-center gap-2 mt-4">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
+        {getPageNumbers().map((pageNumber, index) => (
+          <button
+            key={index}
+            onClick={() => typeof pageNumber === "number" && handlePageChange(pageNumber)}
+            disabled={pageNumber === "..."}
+            className={`px-3 py-1 rounded-md ${
+              pageNumber === currentPage
+                ? "bg-[#048B9A] text-white"
+                : pageNumber === "..."
+                ? "cursor-default"
+                : "hover:bg-gray-100"
+            }`}
+          >
+            {pageNumber}
+          </button>
+        ))}
+
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
       </div>
     </div>
   )

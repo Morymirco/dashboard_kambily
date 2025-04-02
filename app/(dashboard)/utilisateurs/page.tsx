@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Search, UserPlus, MoreHorizontal, Mail, Phone, Loader2, X } from "lucide-react"
+import { useEffect, useState, useMemo } from "react"
+import { Search, UserPlus, MoreHorizontal, Mail, Phone, Loader2, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Eye, EyeOff, Trash2 } from "lucide-react"
 import { toast, Toaster } from "react-hot-toast"
 import { useRouter } from "next/navigation"
 
@@ -31,6 +31,97 @@ import {
 } from "@/components/ui/pagination"
 import { fetchUsers, type User, updateUserStatus, deleteUser } from "@/services/user-service"
 import { getAuthToken } from "@/lib/auth-utils"
+import { Skeleton } from "@/components/ui/skeleton"
+
+interface User {
+  id: number
+  first_name: string
+  last_name: string
+  email: string
+  phone_number: string
+  role: string
+  status: boolean
+  is_active: boolean
+  is_confirmed: boolean
+  is_accept_mail: boolean
+  bio: string | null
+  image: string | null
+  address: string
+  addresses: any[] // Vous pouvez définir une interface plus précise si nécessaire
+  created_at: string
+  updated_at: string
+  last_login: string | null
+  orders: {
+    total_orders: number
+    total_prices: number
+    cart: any[]
+    favorites: any[]
+    average_orders: number
+  }
+  total_favorites: number
+  total_orders: number
+  total_reviews: number
+}
+
+interface SortConfig {
+  key: keyof User | 'name'
+  direction: 'asc' | 'desc'
+}
+
+const columns = [
+  {
+    key: "name",
+    label: "Nom",
+    sortable: true,
+    render: (user: User) => (
+      <div className="flex items-center gap-3">
+        <Avatar>
+          <AvatarImage src={user.image || "/placeholder.svg"} alt={`${user.first_name} ${user.last_name}`} />
+          <AvatarFallback>{user.first_name?.[0]}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-medium">{`${user.first_name} ${user.last_name}`}</p>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
+        </div>
+      </div>
+    )
+  },
+  {
+    key: "phone_number",
+    label: "Téléphone",
+    sortable: true,
+    render: (user: User) => user.phone_number || "Non renseigné"
+  },
+  {
+    key: "role",
+    label: "Rôle",
+    sortable: true,
+    render: (user: User) => (
+      <Badge variant="outline" className="capitalize">
+        {user.role}
+      </Badge>
+    )
+  },
+  {
+    key: "status",
+    label: "Statut",
+    sortable: true,
+    render: (user: User) => (
+      <Badge
+        variant={user.status ? "default" : "secondary"}
+        className={user.status ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
+      >
+        {user.status ? "Actif" : "Inactif"}
+      </Badge>
+    )
+  },
+  {
+    key: "created_at",
+    label: "Inscription",
+    sortable: true,
+    render: (user: User) => new Date(user.created_at).toLocaleDateString()
+  }
+]
 
 export default function UtilisateursPage() {
   const router = useRouter()
@@ -40,11 +131,15 @@ export default function UtilisateursPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
   const [roleFilter, setRoleFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [processingUser, setProcessingUser] = useState<number | null>(null)
+  const itemsPerPage = 10 // Nombre d'éléments par page
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "created_at",
+    direction: "desc"
+  })
 
   // Effet pour le debounce de la recherche
   useEffect(() => {
@@ -65,19 +160,16 @@ export default function UtilisateursPage() {
         if (Array.isArray(usersData)) {
           setUsers(usersData)
           setTotalUsers(usersData.length)
-          setTotalPages(Math.ceil(usersData.length / 10)) // 10 utilisateurs par page
         } else {
           console.error("Réponse invalide de l'API:", usersData)
           setUsers([])
           setTotalUsers(0)
-          setTotalPages(1)
           setError("Format de réponse invalide. Veuillez réessayer plus tard.")
         }
       } catch (err) {
         console.error("Erreur lors du chargement des utilisateurs:", err)
         setUsers([])
         setTotalUsers(0)
-        setTotalPages(1)
         setError("Impossible de charger les utilisateurs. Veuillez réessayer plus tard.")
       } finally {
         setLoading(false)
@@ -149,6 +241,95 @@ export default function UtilisateursPage() {
     router.push(`/utilisateurs/${userId}`)
   }
 
+  // Calcul des indices de début et de fin pour la pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentUsers = users.slice(indexOfFirstItem, indexOfLastItem)
+
+  // Fonction de tri
+  const handleSort = (key: keyof User | 'name') => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc"
+    }))
+  }
+
+  // Filtrer et trier les utilisateurs
+  const filteredAndSortedUsers = useMemo(() => {
+    let filtered = users.filter((user) => {
+      const searchString = searchTerm.toLowerCase()
+      return (
+        user.first_name?.toLowerCase().includes(searchString) ||
+        user.last_name?.toLowerCase().includes(searchString) ||
+        user.email?.toLowerCase().includes(searchString) ||
+        user.phone_number?.toLowerCase().includes(searchString)
+      )
+    })
+
+    return filtered.sort((a, b) => {
+      if (sortConfig.key === "name") {
+        const nameA = `${a.first_name} ${a.last_name}`.toLowerCase()
+        const nameB = `${b.first_name} ${b.last_name}`.toLowerCase()
+        return sortConfig.direction === "asc" 
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA)
+      }
+
+      const valueA = a[sortConfig.key as keyof User]
+      const valueB = b[sortConfig.key as keyof User]
+      
+      // Gestion des valeurs nullables
+      if (valueA === null || valueA === undefined) return sortConfig.direction === "asc" ? -1 : 1
+      if (valueB === null || valueB === undefined) return sortConfig.direction === "asc" ? 1 : -1
+      
+      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1
+      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1
+      return 0
+    })
+  }, [users, searchTerm, sortConfig])
+
+  // Pagination des résultats filtrés
+  const filteredAndSortedCurrentUsers = filteredAndSortedUsers.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage)
+
+  // Générer les numéros de page à afficher
+  const getPageNumbers = () => {
+    const pageNumbers = []
+    const maxPagesToShow = 5 // Nombre maximum de pages à afficher
+
+    if (totalPages <= maxPagesToShow) {
+      // Si le nombre total de pages est inférieur au maximum, afficher toutes les pages
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i)
+      }
+    } else {
+      // Sinon, afficher un nombre limité de pages avec des ellipses
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i)
+        }
+        pageNumbers.push("...")
+        pageNumbers.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1)
+        pageNumbers.push("...")
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i)
+        }
+      } else {
+        pageNumbers.push(1)
+        pageNumbers.push("...")
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i)
+        }
+        pageNumbers.push("...")
+        pageNumbers.push(totalPages)
+      }
+    }
+
+    return pageNumbers
+  }
+
   if (loading && users.length === 0) {
     return (
       <div className="p-6">
@@ -216,14 +397,14 @@ export default function UtilisateursPage() {
           </CardHeader>
           <CardContent>
             <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
+              <div className="relative w-full sm:w-96">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
                   placeholder="Rechercher un utilisateur..."
-                  className="pl-8"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-[#048B9A] focus:border-transparent"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -250,10 +431,43 @@ export default function UtilisateursPage() {
               </div>
             </div>
 
-            {loading && safeUsers.length > 0 ? (
-              <div className="flex items-center justify-center h-[200px]">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-lg font-medium">Mise à jour des données...</span>
+            {loading ? (
+              <div className="space-y-4">
+                {/* Skeleton pour l'en-tête */}
+                <div className="flex justify-between items-center">
+                  <Skeleton className="h-8 w-[200px]" />
+                  <Skeleton className="h-10 w-[150px]" />
+                </div>
+
+                {/* Skeleton pour le tableau */}
+                <div className="border rounded-lg">
+                  <div className="divide-y">
+                    {[...Array(5)].map((_, index) => (
+                      <div key={index} className="p-4">
+                        <div className="flex items-center space-x-4">
+                          <Skeleton className="h-12 w-12 rounded-full" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-[250px]" />
+                            <Skeleton className="h-4 w-[200px]" />
+                          </div>
+                          <div className="ml-auto flex space-x-2">
+                            <Skeleton className="h-8 w-[100px]" />
+                            <Skeleton className="h-8 w-[100px]" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Skeleton pour la pagination */}
+                <div className="flex justify-center space-x-2 mt-4">
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
               </div>
             ) : safeUsers.length === 0 ? (
               <div className="text-center p-8 bg-muted/50 rounded-lg border">
@@ -280,55 +494,37 @@ export default function UtilisateursPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Utilisateur</TableHead>
-                      <TableHead>Rôle</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Commandes</TableHead>
-                      <TableHead>Date d'inscription</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      {columns.map((column) => (
+                        <TableHead
+                          key={column.key}
+                          className={column.sortable ? "cursor-pointer select-none" : ""}
+                          onClick={() => column.sortable && handleSort(column.key as keyof User | 'name')}
+                        >
+                          <div className="flex items-center gap-2">
+                            {column.label}
+                            {sortConfig.key === column.key && (
+                              sortConfig.direction === "asc" ? 
+                              <ChevronUp className="h-4 w-4" /> : 
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </div>
+                        </TableHead>
+                      ))}
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {safeUsers.map((user) => (
+                    {filteredAndSortedCurrentUsers.map((user) => (
                       <TableRow
                         key={user.id || Math.random()}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => user.id && navigateToUserDetail(user.id)}
                       >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage
-                                src={user.image || "/placeholder.svg?height=40&width=40"}
-                                alt={`${user.first_name} ${user.last_name}`}
-                              />
-                              <AvatarFallback>{user.first_name?.charAt(0) || "U"}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">
-                                {user.first_name || "Sans"} {user.last_name || "nom"}
-                              </div>
-                              <div className="text-sm text-muted-foreground">{user.email || "Pas d'email"}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.role || "Non défini"}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={user.status ? "success" : "secondary"}
-                            className={
-                              user.status
-                                ? "bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100"
-                                : "bg-gray-100 text-gray-800 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-100"
-                            }
-                          >
-                            {user.status ? "Actif" : "Inactif"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{user.total_orders || 0}</TableCell>
-                        <TableCell>
-                          {user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A"}
-                        </TableCell>
+                        {columns.map((column) => (
+                          <TableCell key={`${user.id}-${column.key}`}>
+                            {column.render(user)}
+                          </TableCell>
+                        ))}
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           {processingUser === user.id ? (
                             <Loader2 className="h-4 w-4 animate-spin ml-auto" />
@@ -376,82 +572,45 @@ export default function UtilisateursPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-4">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          if (currentPage > 1) handlePageChange(currentPage - 1)
-                        }}
-                        className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
 
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      // Logique pour afficher les pages autour de la page courante
-                      let pageNum
-                      if (totalPages <= 5) {
-                        pageNum = i + 1
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i
-                      } else {
-                        pageNum = currentPage - 2 + i
-                      }
+                {getPageNumbers().map((pageNumber, index) => (
+                  <button
+                    key={index}
+                    onClick={() => typeof pageNumber === "number" && handlePageChange(pageNumber)}
+                    disabled={pageNumber === "..."}
+                    className={`px-3 py-1 rounded-md ${
+                      pageNumber === currentPage
+                        ? "bg-[#048B9A] text-white"
+                        : pageNumber === "..."
+                        ? "cursor-default"
+                        : "hover:bg-gray-100"
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                ))}
 
-                      return (
-                        <PaginationItem key={pageNum}>
-                          <PaginationLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              handlePageChange(pageNum)
-                            }}
-                            isActive={currentPage === pageNum}
-                          >
-                            {pageNum}
-                          </PaginationLink>
-                        </PaginationItem>
-                      )
-                    })}
-
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <>
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                        <PaginationItem>
-                          <PaginationLink
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              handlePageChange(totalPages)
-                            }}
-                          >
-                            {totalPages}
-                          </PaginationLink>
-                        </PaginationItem>
-                      </>
-                    )}
-
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          if (currentPage < totalPages) handlePageChange(currentPage + 1)
-                        }}
-                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
             )}
+
+            <div className="text-sm text-gray-500 text-center mt-2">
+              Page {currentPage} sur {totalPages}
+            </div>
           </CardContent>
         </Card>
       </div>
