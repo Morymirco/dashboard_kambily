@@ -1,6 +1,10 @@
 // services/order-service.ts
 
+import { PROTOCOL_HTTP } from "@/constants"
+import { PORT } from "@/constants"
+import { HOST_IP } from "@/constants"
 import { getAuthToken } from "@/lib/auth-utils"
+import axios from "axios"
 
 export type OrderItem = {
   id: number
@@ -202,21 +206,26 @@ export const fetchOrderDetail = async (id: string): Promise<OrderDetail> => {
 
 export const acceptOrder = async (orderNumber: string): Promise<void> => {
   // endpoint : /orders/accept/<str:number>/
+  // /orders/accept/<str:number>/?email=koulibalyamadou10@gmail.com
+  console.log(orderNumber)
+  console.log(getAuthToken())
   try {
-    const response = await fetch(`/api/orders/${orderNumber}/accept`, {
-      method: "POST",
+    const response = await axios.get(`${PROTOCOL_HTTP}:${PORT}/${HOST_IP}/orders/accept/${orderNumber}/?email=koulibalyamadou10@gmail.com`, {
+      method: "GET",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${getAuthToken()}`,
       },
     })
 
-    if (!response.ok) {
-      const error = await response.json()
+    console.log(response)
+
+    if (response.status !== 200) {
+      const error = await response.data
       throw new Error(error.message || "Erreur lors de l'acceptation de la commande")
     }
 
-    return response.json()
+    return response.data
   } catch (error) {
     console.error("Error accepting order:", error)
     throw error

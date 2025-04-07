@@ -1,12 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
-import Image from "next/image"
-import Link from "next/link"
 import {
   AlertCircle,
   ArrowLeft,
@@ -23,14 +18,18 @@ import {
   Truck,
   User,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
+import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
 
 import {
-  fetchOrderDetail,
   acceptOrder,
-  getStatusText,
-  getStatusColor,
+  fetchOrderDetail,
   getPaymentMethodText,
+  getStatusColor,
+  getStatusText,
   type OrderDetail,
 } from "@/services/order-service"
 
@@ -346,7 +345,7 @@ export default function OrderDetailPage() {
       setIsAccepting(true)
       const loadingToast = toast.loading("Acceptation de la commande en cours...")
 
-      await acceptOrder(order.number.toString())
+      await acceptOrder(order.number.toString());
 
       toast.dismiss(loadingToast)
       toast.success("Commande acceptée avec succès")
