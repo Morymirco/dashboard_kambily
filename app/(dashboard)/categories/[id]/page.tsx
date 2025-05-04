@@ -188,8 +188,8 @@ export default function CategoryDetailPage() {
         formDataToSend.append('image', imageFile)
       }
       
-      const response = await fetch(`${API_BASE_URL}/categories/${id}/`, {
-        method: 'PUT',
+      const response = await fetch(`${API_BASE_URL}/categories/viewset/${id}/`, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
         },

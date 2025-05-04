@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { PROTOCOL_HTTP, HOST_IP, PORT } from "@/constants"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -44,6 +44,23 @@ export default function CategoriesPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    slug: '',
+    is_main: false,
+    parent_category: null as number | null
+  })
+
+  // Ajouter une référence pour l'input de fichier
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Ajouter un état pour l'image sélectionnée
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   useEffect(() => {
     fetchCategories()
@@ -123,6 +140,127 @@ export default function CategoriesPage() {
     }
   }
 
+  const handleEditClick = (category: Category) => {
+    setCategoryToEdit(category)
+    setEditFormData({
+      name: category.name,
+      description: category.description || '',
+      slug: category.slug,
+      is_main: category.is_main,
+      parent_category: category.parent_category
+    })
+    // Réinitialiser l'image sélectionnée et l'aperçu
+    setSelectedImage(null)
+    setImagePreview(category.image)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target
+    
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: checked
+      }))
+    } else {
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
+  }
+
+  const handleParentCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value
+    setEditFormData(prev => ({
+      ...prev,
+      parent_category: value === "" ? null : parseInt(value, 10)
+    }))
+  }
+
+  // Ajouter une fonction pour gérer le changement d'image
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setSelectedImage(file)
+      
+      // Créer un aperçu de l'image
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const submitEditForm = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!categoryToEdit) return
+    
+    try {
+      setIsUpdating(true)
+      const token = getToken()
+      
+      // Utiliser FormData pour envoyer à la fois les données textuelles et l'image
+      const formData = new FormData()
+      
+      // Ajouter les champs textuels
+      formData.append('name', editFormData.name)
+      formData.append('description', editFormData.description)
+      formData.append('slug', editFormData.slug)
+      formData.append('is_main', editFormData.is_main.toString())
+      
+      if (editFormData.parent_category !== null) {
+        formData.append('parent_category', editFormData.parent_category.toString())
+      }
+      
+      // Ajouter l'image si elle a été sélectionnée
+      if (selectedImage) {
+        formData.append('image', selectedImage)
+      }
+      
+      const response = await fetch(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/categories/viewset/${categoryToEdit.id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Ne pas définir Content-Type car FormData le fait automatiquement avec la bonne boundary
+        },
+        body: formData
+      })
+      
+      if (!response.ok) {
+        try {
+          const errorData = await response.json()
+          throw new Error(
+            Object.entries(errorData)
+              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
+              .join("\n")
+          )
+        } catch (jsonError) {
+          throw new Error(`Erreur lors de la mise à jour: ${response.status} ${response.statusText}`)
+        }
+      }
+      
+      const updatedCategory = await response.json()
+      
+      // Mettre à jour la liste des catégories
+      setCategories(categories.map(cat => 
+        cat.id === categoryToEdit.id ? updatedCategory : cat
+      ))
+      
+      toast.success(`La catégorie "${updatedCategory.name}" a été mise à jour`)
+      setIsEditDialogOpen(false)
+      setCategoryToEdit(null)
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la catégorie:", error)
+      toast.error(error instanceof Error ? error.message : "Impossible de mettre à jour la catégorie")
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   // Filtrer les catégories principales et les sous-catégories
   const mainCategories = categories.filter(cat => cat.is_main)
   const subCategories = categories.filter(cat => !cat.is_main)
@@ -159,6 +297,7 @@ export default function CategoriesPage() {
                   key={category.id} 
                   category={category} 
                   onDeleteClick={handleDeleteClick}
+                  onEditClick={handleEditClick}
                 />
               ))
             ) : (
@@ -181,6 +320,7 @@ export default function CategoriesPage() {
                   key={category.id} 
                   category={category} 
                   onDeleteClick={handleDeleteClick}
+                  onEditClick={handleEditClick}
                 />
               ))
             ) : (
@@ -203,6 +343,7 @@ export default function CategoriesPage() {
                   key={category.id} 
                   category={category} 
                   onDeleteClick={handleDeleteClick}
+                  onEditClick={handleEditClick}
                 />
               ))
             ) : (
@@ -265,6 +406,177 @@ export default function CategoriesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de modification de catégorie */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] md:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Modifier la catégorie
+            </DialogTitle>
+            <DialogDescription>
+              Modifiez les informations de la catégorie {categoryToEdit?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={submitEditForm}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Nom</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={editFormData.name}
+                  onChange={handleEditFormChange}
+                  required
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  name="description"
+                  value={editFormData.description}
+                  onChange={handleEditFormChange}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="slug">Slug</Label>
+                <Input
+                  id="slug"
+                  name="slug"
+                  value={editFormData.slug}
+                  onChange={handleEditFormChange}
+                  required
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="is_main"
+                  name="is_main"
+                  checked={editFormData.is_main}
+                  onChange={handleEditFormChange}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="is_main">Catégorie principale</Label>
+              </div>
+              
+              {!editFormData.is_main && (
+                <div className="grid gap-2">
+                  <Label htmlFor="parent_category">Catégorie parente</Label>
+                  <select
+                    id="parent_category"
+                    name="parent_category"
+                    value={editFormData.parent_category === null ? "" : editFormData.parent_category}
+                    onChange={handleParentCategoryChange}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Sélectionner une catégorie parente</option>
+                    {categories
+                      .filter(cat => cat.is_main && cat.id !== categoryToEdit?.id)
+                      .map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+              
+              {/* Ajout du champ pour l'image */}
+              <div className="grid gap-2">
+                <Label htmlFor="image">Image</Label>
+                <div className="flex flex-col gap-3">
+                  {/* Aperçu de l'image */}
+                  {imagePreview && (
+                    <div className="relative aspect-video w-full overflow-hidden rounded-md border border-input">
+                      <Image 
+                        src={imagePreview} 
+                        alt="Aperçu" 
+                        fill 
+                        className="object-cover" 
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2 h-8 w-8 rounded-full p-0"
+                        onClick={() => {
+                          setImagePreview(null)
+                          setSelectedImage(null)
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = ''
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Supprimer l'image</span>
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Input pour sélectionner une nouvelle image */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      ref={fileInputRef}
+                      id="image"
+                      name="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className={imagePreview ? "hidden" : ""}
+                    />
+                    {imagePreview && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Changer l'image
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+                disabled={isUpdating}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                disabled={isUpdating}
+                className="gap-2"
+              >
+                {isUpdating ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Mise à jour...
+                  </>
+                ) : (
+                  <>
+                    <Pencil className="h-4 w-4" />
+                    Mettre à jour
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -272,10 +584,12 @@ export default function CategoriesPage() {
 // Composant pour afficher une carte de catégorie
 function CategoryCard({ 
   category, 
-  onDeleteClick 
+  onDeleteClick,
+  onEditClick
 }: { 
   category: Category, 
-  onDeleteClick: (category: Category) => void 
+  onDeleteClick: (category: Category) => void,
+  onEditClick: (category: Category) => void
 }) {
   return (
     <Card>
@@ -287,10 +601,12 @@ function CategoryCard({
             </CardTitle>
           </Link>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href={`/categories/${category.id}/edit`}>
-                <Pencil className="h-4 w-4" />
-              </Link>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onEditClick(category)}
+            >
+              <Pencil className="h-4 w-4" />
             </Button>
             <Button 
               variant="ghost" 

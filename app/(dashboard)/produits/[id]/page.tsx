@@ -3,7 +3,7 @@ import axios from "axios"
 import { Check, ChevronLeft, Edit, Eye, Plus, Star, Trash2, X, Calendar } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import React, { useEffect, useRef, useState } from "react"
 import toast, { Toaster } from "react-hot-toast"
 import { HOST_IP, PORT, PROTOCOL_HTTP } from "../../../../constants"
@@ -107,8 +107,9 @@ interface Product {
   updated_at: string;
 }
 
-const ProductDetailPage = ({ params }: { params: { id: string } }) => {
-  const { id } = params;
+const ProductDetailPage = () => {
+  const params = useParams();
+  const id = params.id as string;
   const router = useRouter();
 
   const [product, setProduct] = useState<Product>({
