@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Use the exact URL as specified
     const response = await fetch(
-      `${API_BASE_URL}/partenaire/viewset/products/${partnerId}/?page=${page}${searchParam}`,
+      `${API_BASE_URL}/partenaire/products/${partnerId}/?page=${page}${searchParam}`,
       {
         headers: config.headers,
         cache: "no-store",

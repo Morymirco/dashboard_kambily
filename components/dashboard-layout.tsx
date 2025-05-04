@@ -21,10 +21,12 @@ import {
   Moon,
   Handshake,
   User,
+  Tags,
+  MessageSquare,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/contexts/auth-context"
-
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -70,17 +72,15 @@ export default function DashboardLayout({
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - maintenant fixe sur desktop */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-card border-r border-border shadow-lg transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-card border-r border-border shadow-lg transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-4">
           <div className="flex items-center">
-            <div className="h-8 w-8 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">
-              K
-            </div>
+            <Image src="/images/logo.jpg" alt="Kambily" width={32} height={32} />
             <span className="ml-2 text-xl font-semibold text-foreground">Kambily</span>
           </div>
           <button
@@ -90,7 +90,7 @@ export default function DashboardLayout({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex flex-col gap-1 p-4">
+        <nav className="flex flex-col gap-1 p-4 overflow-y-auto h-[calc(100vh-4rem)]">
           <Link
             href="/"
             className={`flex items-center rounded-md px-3 py-2 ${
@@ -136,6 +136,28 @@ export default function DashboardLayout({
             Produits
           </Link>
           <Link
+            href="/categories"
+            className={`flex items-center rounded-md px-3 py-2 ${
+              isActive("/categories")
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <Tags className="mr-3 h-5 w-5" />
+            Catégories
+          </Link>
+          <Link
+            href="/reviews/admin"
+            className={`flex items-center rounded-md px-3 py-2 ${
+              isActive("/reviews/admin")
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <MessageSquare className="mr-3 h-5 w-5" />
+            Avis clients
+          </Link>
+          <Link
             href="/partenaires"
             className={`flex items-center rounded-md px-3 py-2 ${
               isActive("/partenaires")
@@ -161,9 +183,9 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
+      <div className="flex-1 lg:pl-64">
+        {/* Header - maintenant fixe */}
+        <header className="fixed top-0 right-0 left-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:left-64 lg:px-6">
           <button
             className="rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:hidden"
             onClick={() => setSidebarOpen(true)}
@@ -194,8 +216,10 @@ export default function DashboardLayout({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-muted" />
-                  <span className="hidden text-sm font-medium md:inline-block">{user?.name || "Admin"}</span>
+                  <div className="h-8 w-8 rounded-full bg-muted">
+                    <Image src={user?.image || "/images/logo.jpg"} className="rounded-full object-cover h-8 w-8" alt="Avatar" width={32} height={32} />
+                  </div>
+                  <span className="hidden text-sm font-medium md:inline-block">{user?.first_name || "Admin"}</span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -224,8 +248,10 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        {/* Main content */}
-        <main>{children}</main>
+        {/* Main content - ajout d'un padding-top pour compenser le header fixe */}
+        <main className="pt-16">
+          {children}
+        </main>
       </div>
     </div>
   )

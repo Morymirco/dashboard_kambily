@@ -1,15 +1,14 @@
 // Fonction pour récupérer le token d'authentification
-export const getAuthToken = (): string | null => {
-  if (typeof window === "undefined") {
-    return null
+/**
+ * Récupère le token d'authentification depuis le localStorage
+ * @returns {string|null} Le token d'authentification ou null s'il n'existe pas
+ */
+export function getAuthToken(): string | null {
+  // Vérifier si nous sommes côté client
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('authToken')
   }
-
-  try {
-    return localStorage.getItem("auth_token")
-  } catch (error) {
-    console.error("Erreur lors de la récupération du token:", error)
-    return null
-  }
+  return null
 }
 
 // Fonction pour récupérer les headers d'authentification
@@ -28,33 +27,32 @@ export const getAuthHeaders = (): Record<string, string> => {
 }
 
 // Fonction pour vérifier si l'utilisateur est authentifié
-export const isAuthenticated = (): boolean => {
+/**
+ * Vérifie si un token d'authentification existe
+ * @returns {boolean} True si un token existe, false sinon
+ */
+export function hasAuthToken(): boolean {
   return !!getAuthToken()
 }
 
 // Fonction pour stocker le token d'authentification
-export const setAuthToken = (token: string): void => {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  try {
-    localStorage.setItem("auth_token", token)
-  } catch (error) {
-    console.error("Erreur lors du stockage du token:", error)
+/**
+ * Enregistre le token d'authentification dans le localStorage
+ * @param {string} token - Le token d'authentification à enregistrer
+ */
+export function setAuthToken(token: string): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('authToken', token)
   }
 }
 
 // Fonction pour supprimer le token d'authentification
-export const removeAuthToken = (): void => {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  try {
-    localStorage.removeItem("auth_token")
-  } catch (error) {
-    console.error("Erreur lors de la suppression du token:", error)
+/**
+ * Supprime le token d'authentification du localStorage
+ */
+export function removeAuthToken(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('authToken')
   }
 }
 

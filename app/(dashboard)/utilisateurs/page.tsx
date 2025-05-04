@@ -29,7 +29,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { fetchUsers, type User, updateUserStatus, deleteUser } from "@/services/user-service"
+import { fetchUsers, updateUserStatus, deleteUser } from "@/services/user-service"
 import { getAuthToken } from "@/lib/auth-utils"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -158,7 +158,7 @@ export default function UtilisateursPage() {
         const usersData = await fetchUsers(currentPage, debouncedSearchTerm, roleFilter, statusFilter)
 
         if (Array.isArray(usersData)) {
-          setUsers(usersData)
+          setUsers(usersData as User[])
           setTotalUsers(usersData.length)
         } else {
           console.error("Réponse invalide de l'API:", usersData)
@@ -338,10 +338,74 @@ export default function UtilisateursPage() {
             <h1 className="text-2xl font-bold text-foreground">Utilisateurs</h1>
             <p className="text-muted-foreground">Gérez les utilisateurs de votre plateforme</p>
           </div>
+          <Skeleton className="h-10 w-48" />
         </div>
-        <div className="mt-6 flex items-center justify-center h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-lg font-medium">Chargement des utilisateurs...</span>
+
+        <div className="mt-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Liste des utilisateurs</CardTitle>
+              <CardDescription><Skeleton className="h-4 w-32 inline-block" /></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <Skeleton className="h-10 w-full sm:w-96" />
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-10 w-[180px]" />
+                  <Skeleton className="h-10 w-[180px]" />
+                </div>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nom</TableHead>
+                      <TableHead>Téléphone</TableHead>
+                      <TableHead>Rôle</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Inscription</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div>
+                              <Skeleton className="h-4 w-32 mb-1" />
+                              <Skeleton className="h-3 w-40" />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-8 rounded-md" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex justify-center mt-4">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )

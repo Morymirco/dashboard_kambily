@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const searchParam = search ? `&search=${encodeURIComponent(search)}` : ""
     const config = getServerFetchConfig()
 
-    const response = await fetch(`${API_BASE_URL}/partenaire/viewset/?page=${page}${searchParam}`, {
+    const response = await fetch(`${API_BASE_URL}/partenaire/?page=${page}${searchParam}`, {
       headers: config.headers,
       cache: "no-store",
     })
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const config = getServerFetchConfig()
 
-    const response = await fetch(`${API_BASE_URL}/partenaire/viewset/`, {
+    const response = await fetch(`${API_BASE_URL}/partenaire/`, {
       method: "POST",
       headers: {
         ...config.headers,

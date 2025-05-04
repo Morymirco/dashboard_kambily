@@ -68,3 +68,57 @@
   }
 }
 
+/* Styles pour le layout du dashboard */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Styles pour les conteneurs de contenu principal */
+.dashboard-content {
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+/* Amélioration du défilement dans la sidebar */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
+  border-radius: 20px;
+}
+
+/* Styles pour les transitions fluides */
+.sidebar-transition {
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Styles pour l'ombre de l'entête fixe */
+.header-shadow {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Styles pour l'animation du menu mobile */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mobile-menu-backdrop {
+  animation: fadeIn 0.2s ease-in-out;
+}
+

@@ -210,9 +210,9 @@ const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
         {/* Attributs de la variante */}
         {item.is_variante && item.product_variante.attributs && (
           <div className="mt-1 flex flex-wrap gap-2">
-            {item.product_variante.attributs.map((attr) => (
+            {item.product_variante.attributs.map((attr: Attribut) => (
               <span
-                key={attr.id}
+                key={attr.attribut.nom}
                 className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground"
               >
                 {attr.attribut.nom}:{" "}

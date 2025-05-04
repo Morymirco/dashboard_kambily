@@ -232,6 +232,11 @@ export default function ProduitsPage() {
     return pageNumbers
   }
 
+  // Ajouter cette fonction dans le composant ProduitsPage
+  const handleRowClick = (productId: number) => {
+    router.push(`/produits/${productId}`)
+  }
+
   return (
     <div className="p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -438,7 +443,11 @@ export default function ProduitsPage() {
                     </TableRow>
                   ) : (
                     currentProducts.map((product) => (
-                      <TableRow key={product.id}>
+                      <TableRow 
+                        key={product.id} 
+                        onClick={() => handleRowClick(Number(product.id))}
+                        className="cursor-pointer hover:bg-muted/50"
+                      >
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <img
@@ -469,22 +478,41 @@ export default function ProduitsPage() {
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={(e) => e.stopPropagation()} // Empêcher la propagation du clic
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">Actions</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => router.push(`/produits/${product.id}`)}>
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation() // Empêcher la propagation du clic
+                                  router.push(`/produits/${product.id}`)
+                                }}
+                              >
                                 <Edit className="mr-2 h-4 w-4" />
                                 <span>Modifier</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/produits/${product.id}/copier`)}>
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation() // Empêcher la propagation du clic
+                                  router.push(`/produits/${product.id}/copier`)
+                                }}
+                              >
                                 <Copy className="mr-2 h-4 w-4" />
                                 <span>Copier</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/produits/${product.id}/supprimer`)}>
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation() // Empêcher la propagation du clic
+                                  router.push(`/produits/${product.id}/supprimer`)
+                                }}
+                              >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 <span>Supprimer</span>
                               </DropdownMenuItem>

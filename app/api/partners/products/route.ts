@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const config = getServerFetchConfig()
 
     // Utiliser l'URL correcte pour récupérer tous les produits des partenaires
-    const response = await fetch(`${API_BASE_URL}/partenaire/viewset/products/?page=${page}${searchParam}`, {
+    const response = await fetch(`${API_BASE_URL}/partenaire/products/?page=${page}${searchParam}`, {
       headers: config.headers,
       cache: "no-store",
     })

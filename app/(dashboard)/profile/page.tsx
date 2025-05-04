@@ -2,11 +2,12 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "react-hot-toast"
 import { User, Mail, Phone, MapPin, Building, Shield, Camera } from "lucide-react"
-
+import axios from "axios"
+import { API_BASE_URL } from "@/constants"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,34 +17,80 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 
+// Mettre à jour le type User pour correspondre à la structure de données reçue
+export type User = {
+  
+  id?: string
+  first_name?: string
+  last_name?: string
+  email?: string
+  role?: string
+  phone_number?: string
+  address?: string
+  is_active?: boolean
+  status?: boolean
+  bio?: string
+  image?: string
+  is_confirmed?: boolean
+  is_accept_mail?: boolean
+  total_orders?: number
+  total_favorites?: number
+  total_reviews?: number
+  addresses?: Array<{
+    pk: number
+    address: string
+    ville: string
+    pays: string
+    telephone: string
+    location_url: string
+    latitude: number
+    longitude: number
+    is_default: boolean
+  }>
+}
+
 export default function ProfilePage() {
-  const { user } = useAuth()
+  const { 
+    user, 
+    fetchUserProfile, 
+    isLoadingProfile, 
+    updateUserData, 
+    getToken 
+  } = useAuth()
+  
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: "",
+    first_name: "",
+    last_name: "",
     email: "",
-    phone: "",
+    phone_number: "",
     address: "",
-    company: "",
     bio: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   })
 
+  // Effet pour charger le profil utilisateur
   useEffect(() => {
     if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.name || "",
+      // Mettre à jour le formulaire avec les données de l'utilisateur
+      setFormData({
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
         email: user.email || "",
-        phone: user.phone || "",
+        phone_number: user.phone_number || "",
         address: user.address || "",
-        company: user.company || "",
         bio: user.bio || "",
-      }))
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
+      
+      // Charger le profil complet si nécessaire
+      fetchUserProfile()
     }
-  }, [user])
+  }, [user, fetchUserProfile])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -55,12 +102,40 @@ export default function ProfilePage() {
     setIsLoading(true)
 
     try {
-      // Simuler une mise à jour
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      toast.success("Profil mis à jour avec succès")
+      const token = getToken()
+      
+      const response = await axios.put(
+        `${API_BASE_URL}/accounts/updateuser/`, 
+        {
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          phone_number: formData.phone_number,
+          address: formData.address,
+          bio: formData.bio,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      )
+      
+      if (response.data) {
+        // Mettre à jour les données utilisateur dans le contexte
+        updateUserData({
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          phone_number: formData.phone_number,
+          address: formData.address,
+          bio: formData.bio,
+        })
+        
+        toast.success("Profil mis à jour avec succès")
+      }
     } catch (error) {
-      toast.error("Erreur lors de la mise à jour du profil")
-      console.error(error)
+      console.error("Erreur lors de la mise à jour du profil:", error)
+      toast.error("Impossible de mettre à jour le profil")
     } finally {
       setIsLoading(false)
     }
@@ -126,109 +201,117 @@ export default function ProfilePage() {
               </CardHeader>
               <form onSubmit={handleProfileUpdate}>
                 <CardContent className="space-y-6">
-                  <div className="flex flex-col items-center space-y-4">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={user?.avatar || ""} alt={user?.name || "Avatar"} />
-                      <AvatarFallback className="text-2xl">{user?.name?.charAt(0) || "A"}</AvatarFallback>
-                    </Avatar>
-                    <div className="relative">
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Camera className="h-4 w-4" />
-                        <span>Changer la photo</span>
-                      </Button>
-                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                  {isLoadingProfile ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col items-center space-y-4">
+                        <Avatar className="h-24 w-24">
+                          <AvatarImage src={user?.image || ""} alt={`${formData.first_name} ${formData.last_name}` || "Avatar"} />
+                          <AvatarFallback className="text-2xl">{formData.first_name?.charAt(0) || "A"}</AvatarFallback>
+                        </Avatar>
+                        <div className="relative">
+                          <Button variant="outline" size="sm" className="flex items-center gap-2">
+                            <Camera className="h-4 w-4" />
+                            <span>Changer la photo</span>
+                          </Button>
+                          <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                        </div>
+                      </div>
 
-                  <Separator />
+                      <Separator />
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nom complet</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="name"
-                          name="name"
-                          placeholder="Votre nom"
-                          className="pl-10"
-                          value={formData.name}
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="first_name">Prénom</Label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              id="first_name"
+                              name="first_name"
+                              placeholder="Votre prénom"
+                              className="pl-10"
+                              value={formData.first_name}
+                              onChange={handleChange}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="last_name">Nom</Label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              id="last_name"
+                              name="last_name"
+                              placeholder="Votre nom"
+                              className="pl-10"
+                              value={formData.last_name}
+                              onChange={handleChange}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              placeholder="votre@email.com"
+                              className="pl-10"
+                              value={formData.email}
+                              onChange={handleChange}
+                              disabled
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="phone_number">Téléphone</Label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                            <Input
+                              id="phone_number"
+                              name="phone_number"
+                              placeholder="+224 621 82 00 65"
+                              className="pl-10"
+                              value={formData.phone_number}
+                              onChange={handleChange}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Adresse</Label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                          <Input
+                            id="address"
+                            name="address"
+                            placeholder="Votre adresse"
+                            className="pl-10"
+                            value={formData.address}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="bio">Biographie</Label>
+                        <Textarea
+                          id="bio"
+                          name="bio"
+                          placeholder="Parlez-nous de vous"
+                          rows={4}
+                          value={formData.bio}
                           onChange={handleChange}
                         />
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          placeholder="votre@email.com"
-                          className="pl-10"
-                          value={formData.email}
-                          onChange={handleChange}
-                          disabled
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Téléphone</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="phone"
-                          name="phone"
-                          placeholder="+33 6 12 34 56 78"
-                          className="pl-10"
-                          value={formData.phone}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="company">Entreprise</Label>
-                      <div className="relative">
-                        <Building className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                        <Input
-                          id="company"
-                          name="company"
-                          placeholder="Nom de votre entreprise"
-                          className="pl-10"
-                          value={formData.company}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Adresse</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="address"
-                        name="address"
-                        placeholder="Votre adresse"
-                        className="pl-10"
-                        value={formData.address}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Biographie</Label>
-                    <Textarea
-                      id="bio"
-                      name="bio"
-                      placeholder="Parlez-nous de vous"
-                      rows={4}
-                      value={formData.bio}
-                      onChange={handleChange}
-                    />
-                  </div>
+                    </>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" className="bg-teal-600 hover:bg-teal-700" disabled={isLoading}>

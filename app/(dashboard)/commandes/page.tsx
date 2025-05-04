@@ -155,7 +155,7 @@ export default function CommandesPage() {
       }
 
       // Appliquer le tri
-      result = sortOrders(result, sortConfig.key, sortConfig.direction)
+      result = sortOrders(result, sortConfig.key, sortConfig.direction as "asc" | "desc")
 
       setFilteredOrders(result)
       setTotalOrders(result.length)
@@ -385,30 +385,117 @@ export default function CommandesPage() {
             <h1 className="text-2xl font-bold text-foreground">Commandes</h1>
             <p className="text-muted-foreground">Gérez les commandes de votre boutique</p>
           </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-[100px] rounded-lg" />
-          <Skeleton className="h-[100px] rounded-lg" />
-          <Skeleton className="h-[100px] rounded-lg" />
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Commandes totales</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 mb-1" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Commandes en attente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 mb-1" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Commandes livrées</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 mb-1" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="mt-6 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-4 w-24" />
+              <CardTitle>Liste des commandes</CardTitle>
+              <CardDescription><Skeleton className="h-4 w-32 inline-block" /></CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-full sm:w-64" />
                 <div className="flex items-center gap-2">
+                  <Skeleton className="h-10 w-32" />
                   <Skeleton className="h-10 w-32" />
                   <Skeleton className="h-10 w-32" />
                 </div>
               </div>
+
               <div className="rounded-md border">
-                <div className="h-[400px] w-full animate-pulse bg-muted" />
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]"><Skeleton className="h-4 w-4" /></TableHead>
+                      <TableHead>Commande</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Montant</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>Paiement</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-7 w-7 bg-primary/10 rounded-full flex items-center justify-center">
+                              <Skeleton className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="ml-2">
+                              <Skeleton className="h-4 w-16 mb-1" />
+                              <Skeleton className="h-3 w-8" />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-6 w-6 bg-muted rounded-full flex items-center justify-center mr-1.5">
+                              <Skeleton className="h-3.5 w-3.5" />
+                            </div>
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                        </TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Skeleton className="h-8 w-8 rounded-md" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-48" />
+                <div className="flex items-center space-x-2">
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                </div>
               </div>
             </CardContent>
           </Card>

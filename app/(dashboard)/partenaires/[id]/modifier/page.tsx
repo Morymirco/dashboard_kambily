@@ -3,9 +3,10 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { toast } from "react-hot-toast"
 import { ArrowLeft, Save } from "lucide-react"
+import axios from "axios"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,8 +16,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchPartnerById, type Partner } from "@/services/partner-service"
+import { API_BASE_URL } from "@/constants"
+import { getAuthToken } from "@/lib/auth-utils"
 
-export default function ModifierPartenairePage({ params }: { params: { id: string } }) {
+export default function ModifierPartenairePage() {
+  // Utiliser uniquement useParams() pour obtenir l'ID
+  const params = useParams()
+  const partnerId = params.id as string
+  
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -33,8 +40,8 @@ export default function ModifierPartenairePage({ params }: { params: { id: strin
     const loadPartner = async () => {
       try {
         setLoading(true)
-        const partnerId = Number.parseInt(params.id)
-        const partnerData = await fetchPartnerById(partnerId)
+        const id = Number.parseInt(partnerId)
+        const partnerData = await fetchPartnerById(id)
         setFormData({
           name: partnerData.name,
           email: partnerData.email,
@@ -52,7 +59,7 @@ export default function ModifierPartenairePage({ params }: { params: { id: strin
     }
 
     loadPartner()
-  }, [params.id])
+  }, [partnerId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -69,24 +76,46 @@ export default function ModifierPartenairePage({ params }: { params: { id: strin
 
     try {
       setSaving(true)
-
-      const response = await fetch(`/api/partners/${params.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la mise à jour du partenaire")
+      const token = getAuthToken()
+      
+      if (!token) {
+        toast.error("Vous devez être connecté pour effectuer cette action")
+        router.push("/login")
+        return
       }
 
-      toast.success("Partenaire mis à jour avec succès")
-      router.push(`/partenaires/${params.id}`)
+      const loadingToast = toast.loading("Mise à jour du partenaire en cours...")
+
+      // Appel direct à l'API backend
+      const response = await axios.patch(
+        `${API_BASE_URL}/partenaire/${partnerId}/`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        }
+      )
+
+      toast.dismiss(loadingToast)
+      
+      if (response.status === 200) {
+        toast.success("Partenaire mis à jour avec succès")
+        router.push(`/partenaires/${partnerId}`)
+      } else {
+        throw new Error("Erreur lors de la mise à jour du partenaire")
+      }
     } catch (error) {
       console.error("Erreur:", error)
-      toast.error("Erreur lors de la mise à jour du partenaire")
+      
+      // Afficher un message d'erreur plus détaillé si disponible
+      if (axios.isAxiosError(error) && error.response) {
+        const errorMessage = error.response.data?.detail || error.response.data?.message || "Erreur lors de la mise à jour du partenaire"
+        toast.error(errorMessage)
+      } else {
+        toast.error("Erreur lors de la mise à jour du partenaire")
+      }
     } finally {
       setSaving(false)
     }
@@ -143,7 +172,7 @@ export default function ModifierPartenairePage({ params }: { params: { id: strin
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => router.push(`/partenaires/${params.id}`)}>
+          <Button variant="outline" size="icon" onClick={() => router.push(`/partenaires/${partnerId}`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-2xl font-bold">Modifier le partenaire</h1>

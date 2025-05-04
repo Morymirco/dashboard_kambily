@@ -1,19 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { ArrowLeft, Calendar, Clock, Edit, ExternalLink, Globe, Mail, MapPin, Phone, Trash2 } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
-import { ArrowLeft, Edit, Trash2, Mail, Phone, Globe, MapPin, Calendar, Clock, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import { fetchPartnerById, fetchPartnerProducts, type Partner, type PartnerProduct } from "@/services/partner-service"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { type PartnerProduct, type PartnerWithProducts } from "@/services/partner-service"
 
-export default function PartenaireDetailPage({ params }: { params: { id: string } }) {
+export default function PartenaireDetailPage() {
+  const params = useParams()
+  const partnerId = params.id as string
+  
   const router = useRouter()
-  const [partner, setPartner] = useState<Partner | null>(null)
+  const [partner, setPartner] = useState<PartnerWithProducts | null>(null)
   const [products, setProducts] = useState<PartnerProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -22,29 +25,70 @@ export default function PartenaireDetailPage({ params }: { params: { id: string 
     const loadPartner = async () => {
       try {
         setLoading(true)
-        const partnerId = Number.parseInt(params.id)
-        const partnerData = await fetchPartnerById(partnerId)
+        const id = Number.parseInt(partnerId)
+        
+        // Récupérer les données du partenaire
+        const response = await fetch(`/api/partners/${id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+        
+        if (!response.ok) {
+          throw new Error("Erreur lors de la récupération du partenaire")
+        }
+        
+        // Convertir en objet JavaScript
+        const partnerData = await response.json()
         setPartner(partnerData)
-
-        // Charger les produits du partenaire
-        try {
-          const productsData = await fetchPartnerProducts(partnerId)
-          setProducts(productsData.results || [])
-        } catch (error) {
-          console.error("Erreur lors du chargement des produits:", error)
-          // Ne pas bloquer l'affichage du partenaire si les produits ne peuvent pas être chargés
+        
+        // Extraire les produits directement de la réponse
+        if (partnerData.products && partnerData.products.results) {
+          console.log("Produits trouvés dans products.results")
+          setProducts(partnerData.products.results)
+        } else if (partnerData.products && Array.isArray(partnerData.products)) {
+          console.log("Produits trouvés dans un tableau products")
+          setProducts(partnerData.products)
+        } else {
+          console.log("Format de produits non reconnu, tentative de récupération séparée")
+          
+          // Récupérer les produits séparément
+          const productsResponse = await fetch(`/api/partners/${id}/products`, {
+            method: "GET",
+          })
+          
+          if (!productsResponse.ok) {
+            console.error("Erreur lors de la récupération des produits")
+            setProducts([])
+            return
+          }
+          
+          const productsData = await productsResponse.json()
+          
+          if (productsData.results) {
+            setProducts(productsData.results)
+          } else if (productsData.products && productsData.products.results) {
+            setProducts(productsData.products.results)
+          } else if (Array.isArray(productsData)) {
+            setProducts(productsData)
+          } else {
+            console.error("Format de données de produits non reconnu:", productsData)
+            setProducts([])
+          }
         }
       } catch (error) {
-        console.error("Erreur lors du chargement du partenaire:", error)
+        console.error("Erreur lors du chargement:", error)
         setError("Impossible de charger les détails du partenaire")
         toast.error("Impossible de charger les détails du partenaire")
+        setProducts([])
       } finally {
         setLoading(false)
       }
     }
 
     loadPartner()
-  }, [params.id])
+  }, [partnerId])
 
   // Mettre à jour la fonction handleDelete pour utiliser la bonne URL
   const handleDelete = async () => {
@@ -292,7 +336,7 @@ export default function PartenaireDetailPage({ params }: { params: { id: string 
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  {products.length === 0 ? (
+                  {!Array.isArray(products) || products.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center">
                       <div className="text-muted-foreground mb-2 text-4xl">📦</div>
                       <p className="text-muted-foreground">Aucun produit associé à ce partenaire</p>

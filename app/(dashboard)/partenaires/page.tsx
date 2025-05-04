@@ -187,30 +187,110 @@ export default function PartenairesPage() {
             <h1 className="text-2xl font-bold text-foreground">Partenaires</h1>
             <p className="text-muted-foreground">Gérez vos partenaires commerciaux</p>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-48" />
+          </div>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-[100px] rounded-lg" />
-          <Skeleton className="h-[100px] rounded-lg" />
-          <Skeleton className="h-[100px] rounded-lg" />
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Partenaires totaux</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 mb-1" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Partenaires actifs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-16 mb-1" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Dernier ajout</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-32 mb-1" />
+              <Skeleton className="h-4 w-24" />
+            </CardContent>
+          </Card>
         </div>
 
         <div className="mt-6 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-4 w-24" />
+              <CardTitle>Liste des partenaires</CardTitle>
+              <CardDescription><Skeleton className="h-4 w-32 inline-block" /></CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-full sm:w-64" />
                 <div className="flex items-center gap-2">
-                  <Skeleton className="h-10 w-32" />
                   <Skeleton className="h-10 w-32" />
                 </div>
               </div>
+
               <div className="rounded-md border">
-                <div className="h-[400px] w-full animate-pulse bg-muted" />
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]"><Skeleton className="h-4 w-4" /></TableHead>
+                      <TableHead>Partenaire</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Adresse</TableHead>
+                      <TableHead>Site Web</TableHead>
+                      <TableHead>Date d'ajout</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-10 w-10 rounded-md" />
+                            <div>
+                              <Skeleton className="h-5 w-32 mb-1" />
+                              <Skeleton className="h-4 w-16" />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <Skeleton className="h-5 w-32 mb-1" />
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                        </TableCell>
+                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end">
+                            <Skeleton className="h-8 w-8 rounded-md" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <Skeleton className="h-4 w-48" />
+                <div className="flex items-center space-x-2">
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                </div>
               </div>
             </CardContent>
           </Card>

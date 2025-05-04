@@ -24,6 +24,7 @@ export type PartnerProduct = {
   id: number
   name: string
   slug: string
+  
   short_description: string
   long_description: string
   regular_price: string
@@ -71,6 +72,7 @@ export type PartnerProduct = {
     created_at: string
     updated_at: string
   }
+  
   // Autres propriétés
   [key: string]: any
 }
@@ -81,6 +83,12 @@ export type PartnerProductsResponse = {
   next: string | null
   previous: string | null
   results: PartnerProduct[]
+  products: {
+    count: number
+    next: string | null
+    previous: string | null
+    results: PartnerProduct[]
+  }
 }
 
 // Response for a specific partner's products
@@ -104,6 +112,26 @@ export type AllPartnerProductsResponse = Array<{
   products: PartnerProduct[]
 }>
 
+// Modifions le type ProductsResponse pour inclure la propriété products
+export interface ProductsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: PartnerProduct[];
+  // Ajout de la propriété products qui peut être présente dans certaines réponses
+  products?: {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: PartnerProduct[];
+  };
+}
+
+// Maintenant PartnerWithProducts peut étendre Partner sans conflit
+export interface PartnerWithProducts extends Partner {
+  products: ProductsResponse;
+}
+
 // Fonction pour récupérer tous les partenaires
 export const fetchPartners = async (page = 1, search = "") => {
   try {
@@ -124,21 +152,19 @@ export const fetchPartners = async (page = 1, search = "") => {
 }
 
 // Fonction pour récupérer un partenaire spécifique
-export const fetchPartnerById = async (id: number) => {
-  try {
-    const response = await fetch(`/api/partners/${id}`, {
-      method: "GET",
-    })
+export async function fetchPartnerById(id: number): Promise<PartnerWithProducts> {
+  const response = await fetch(`/api/partners/${id}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
-    if (!response.ok) {
-      throw new Error("Partenaire non trouvé")
-    }
-
-    return (await response.json()) as Partner
-  } catch (error) {
-    console.error("Erreur:", error)
-    throw error
+  if (!response.ok) {
+    throw new Error("Erreur lors de la récupération du partenaire");
   }
+
+  return response.json();
 }
 
 // Fonction pour créer un partenaire
@@ -241,7 +267,7 @@ export const fetchAllPartnerProducts = async (page = 1, search = "") => {
         ...product,
         partenaire: {
           id: partner.id,
-          name: product.partenaire?.name || partner.name || "",
+          name: product.partenaire?.name,
           email: product.partenaire?.email || "",
           phone: product.partenaire?.phone || "",
           address: product.partenaire?.address || "",
@@ -268,30 +294,18 @@ export const fetchAllPartnerProducts = async (page = 1, search = "") => {
 }
 
 // Fonction pour récupérer les produits d'un partenaire spécifique
-export const fetchPartnerProducts = async (partnerId: number, page = 1, search = "") => {
-  try {
-    const searchParam = search ? `&search=${encodeURIComponent(search)}` : ""
-    const response = await fetch(`/api/partners/${partnerId}/products?page=${page}${searchParam}`, {
-      method: "GET",
-    })
+export async function fetchPartnerProducts(partnerId: number): Promise<ProductsResponse> {
+  const response = await fetch(`/api/partners/${partnerId}/products`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
-    if (!response.ok) {
-      throw new Error("Erreur lors de la récupération des produits du partenaire")
-    }
-
-    // The API returns a partner object with a products array
-    const partnerWithProducts = (await response.json()) as PartnerWithProductsResponse
-
-    // Return the products in a format compatible with the existing code
-    return {
-      count: partnerWithProducts.products.length,
-      next: null,
-      previous: null,
-      results: partnerWithProducts.products,
-    } as PartnerProductsResponse
-  } catch (error) {
-    console.error("Erreur:", error)
-    throw error
+  if (!response.ok) {
+    throw new Error("Erreur lors de la récupération des produits du partenaire");
   }
+
+  return response.json();
 }
 

@@ -7,10 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { fetchDashboardStats, fetchRecentOrders, fetchTopProducts, formatPrice } from "@/services/dashboard-service"
 import { getStatusText, getStatusColor } from "@/services/order-service"
 import type { DashboardStats, RecentOrder, TopProduct } from "@/services/dashboard-service"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Calendar } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 // Importer dynamiquement les composants recharts pour éviter les problèmes côté serveur
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [timeRange, setTimeRange] = useState<"today" | "this_week" | "this_month" | "this_year" | "total">("total")
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -64,20 +66,41 @@ export default function DashboardPage() {
     return getStatusColor(status)
   }
 
+  // Fonction pour obtenir le texte de la période
+  const getTimeRangeText = (range: string) => {
+    switch (range) {
+      case "today":
+        return "aujourd'hui"
+      case "this_week":
+        return "cette semaine"
+      case "this_month":
+        return "ce mois-ci"
+      case "this_year":
+        return "cette année"
+      case "total":
+        return "au total"
+      default:
+        return ""
+    }
+  }
+
   // Afficher un état de chargement
   if (loading) {
     return (
       <div className="p-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-          <p className="text-muted-foreground">Chargement des données...</p>
+          <p className="text-muted-foreground">Bienvenue sur votre tableau de bord administratif Kambily</p>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
-                <Skeleton className="h-4 w-24" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  <Skeleton className="h-4 w-24" />
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Skeleton className="h-8 w-16 mb-1" />
@@ -85,6 +108,83 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Charts */}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle><Skeleton className="h-5 w-40" /></CardTitle>
+              <CardDescription><Skeleton className="h-4 w-64" /></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 flex items-center justify-center bg-muted/20 rounded-md">
+                <Skeleton className="h-60 w-[90%]" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle><Skeleton className="h-5 w-56" /></CardTitle>
+              <CardDescription><Skeleton className="h-4 w-64" /></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80 flex items-center justify-center">
+                <div className="relative w-64 h-64">
+                  <Skeleton className="h-64 w-64 rounded-full" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Skeleton className="h-32 w-32 rounded-full" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs */}
+        <div className="mt-6">
+          <div className="border-b mb-4">
+            <div className="flex gap-4">
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle><Skeleton className="h-5 w-40" /></CardTitle>
+              <CardDescription><Skeleton className="h-4 w-64" /></CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead><Skeleton className="h-4 w-8" /></TableHead>
+                    <TableHead><Skeleton className="h-4 w-24" /></TableHead>
+                    <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead><Skeleton className="h-4 w-16" /></TableHead>
+                    <TableHead className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...Array(5)].map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </TableCell>
+                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
@@ -113,9 +213,27 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-        <p className="text-muted-foreground">Bienvenue sur votre tableau de bord administratif Kambily</p>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
+          <p className="text-muted-foreground">Bienvenue sur votre tableau de bord administratif Kambily</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={timeRange} onValueChange={(value) => setTimeRange(value as any)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Période" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Aujourd'hui</SelectItem>
+              <SelectItem value="this_week">Cette semaine</SelectItem>
+              <SelectItem value="this_month">Ce mois-ci</SelectItem>
+              <SelectItem value="this_year">Cette année</SelectItem>
+              <SelectItem value="total">Total</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Stats */}
@@ -125,9 +243,11 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Ventes totales</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats ? formatPrice(stats.total.revenue) : "0"}</div>
+            <div className="text-2xl font-bold">
+              {stats ? formatPrice(stats[timeRange].revenue) : "0"}
+            </div>
             <p className="text-xs text-green-500">
-              +{stats ? Math.round((stats.this_month.revenue / (stats.total.revenue || 1)) * 100) : 0}% ce mois-ci
+              {timeRange !== "total" && `${getTimeRangeText(timeRange)}`}
             </p>
           </CardContent>
         </Card>
@@ -136,8 +256,10 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Utilisateurs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total.users || 0}</div>
-            <p className="text-xs text-green-500">+{stats?.today.users || 0} aujourd'hui</p>
+            <div className="text-2xl font-bold">{stats?.[timeRange].users || 0}</div>
+            <p className="text-xs text-green-500">
+              {timeRange !== "total" && `${getTimeRangeText(timeRange)}`}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -145,8 +267,10 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Commandes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total.orders || 0}</div>
-            <p className="text-xs text-green-500">+{stats?.today.orders || 0} aujourd'hui</p>
+            <div className="text-2xl font-bold">{stats?.[timeRange].orders || 0}</div>
+            <p className="text-xs text-green-500">
+              {timeRange !== "total" && `${getTimeRangeText(timeRange)}`}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -154,8 +278,10 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Produits actifs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.total.products || 0}</div>
-            <p className="text-xs text-muted-foreground">+{stats?.today.products || 0} nouveaux produits</p>
+            <div className="text-2xl font-bold">{stats?.[timeRange].products || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {timeRange !== "total" && `${getTimeRangeText(timeRange)}`}
+            </p>
           </CardContent>
         </Card>
       </div>
