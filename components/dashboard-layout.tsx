@@ -23,6 +23,7 @@ import {
   User,
   Tags,
   MessageSquare,
+  Ticket,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/contexts/auth-context"
@@ -167,6 +168,17 @@ export default function DashboardLayout({
           >
             <Handshake className="mr-3 h-5 w-5" />
             Partenaires
+          </Link>
+          <Link
+            href="/codes-promo"
+            className={`flex items-center rounded-md px-3 py-2 ${
+              isActive("/codes-promo")
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <Ticket className="mr-3 h-5 w-5" />
+            Codes promo
           </Link>
           <Link
             href="/parametres"
