@@ -156,10 +156,8 @@ interface OrderItem {
   variante?: Variante
 }
 
-interface Order {
-  id: number
-  items: OrderItem[]
-  // ... autres propriétés de la commande
+interface promo_code{
+
 }
 
 const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
@@ -832,6 +830,39 @@ export default function OrderDetailPage() {
                   </>
                 )}
               </button>
+
+                {/* SECTION CODE PROMO  SI LA COMMANDE EST PAYEE AVEC UN CODE PROMO */}
+      {order?.promo_code &&(
+        <div className="rounded-lg border border-border bg-card p-5">
+          <h2 className="mb-4 text-base font-medium text-foreground">
+            Code promo
+          </h2>
+<p>
+ <span className="text-muted-foreground"> Code :</span>
+  {
+    order.promo_code.code
+  }
+</p>
+<p>
+  <span className="text-muted-foreground"> Type :</span>
+  {
+    order.promo_code.discount_type
+  }
+</p>
+<p>
+  <span className="text-muted-foreground"> Valeur :</span>
+  {
+    order.promo_code.discount_value
+  }
+</p>
+<p>
+  <span className="text-muted-foreground"> Date de fin :</span>
+  {
+    order.promo_code.end_date
+  }
+</p>
+        </div>
+      )}
             </div>
           </div>
         </div>
@@ -849,7 +880,7 @@ export default function OrderDetailPage() {
           Voir la facture
         </a>
       )}
-
+    
       {/* Section Paiement */}
       <div className="rounded-lg border border-border bg-card p-5">
         <h2 className="mb-4 text-base font-medium text-foreground">
