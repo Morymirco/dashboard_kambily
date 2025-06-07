@@ -37,5 +37,9 @@ export const API_ENDPOINTS = {
         parent : `${API_BASE_URL}/categories/viewset/parent/category/`,
         add : `${API_BASE_URL}/categories/viewset/`,
     },
+    //REVIEWS
+    reviews :{
+        base : `${API_BASE_URL}/reviews/admin/`,
+    },
   
 }
