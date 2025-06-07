@@ -55,5 +55,13 @@ export const API_ENDPOINTS = {
         update : (id: string) => `${API_BASE_URL}/accounts/admin/${id}/`,
         add : `${API_BASE_URL}/users/`,
     },
+    //PROMOCODES
+    promocodes :{
+        base : `${API_BASE_URL}/promocode/`,
+        detail : (id: string) => `${API_BASE_URL}/promocodes/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/promocodes/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/promocodes/${id}/`,
+        add : `${API_BASE_URL}/promocodes/`,
+    },
   
 }
