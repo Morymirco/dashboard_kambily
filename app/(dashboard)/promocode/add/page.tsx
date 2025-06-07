@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useCreatePromoCode } from "@/hooks/api/promocodes"
-import { type CreatePromoCodeData } from "@/lib/services/promocodes.service"
+import { type CreatePromoCodeData } from "@/lib/types/promocode"
 
 export default function AddPromoCodePage() {
   const router = useRouter()
@@ -21,12 +21,10 @@ export default function AddPromoCodePage() {
 
   const [formData, setFormData] = useState<CreatePromoCodeData>({
     code: "",
-    description: "",
     discount_type: "percentage",
-    discount_value: 0,
-    min_order_amount: undefined,
-    max_discount_amount: undefined,
-    usage_limit: undefined,
+    discount_value: "0",
+    max_discount: "0",
+    minimum_order_amount: "0",
     is_active: true,
     start_date: "",
     end_date: "",
@@ -132,11 +130,11 @@ export default function AddPromoCodePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
+              <Label htmlFor="discount_value">Description *</Label>
               <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
+                id="discount_value"
+                name="discount_value"
+                value={formData.discount_value}
                 onChange={handleInputChange}
                 placeholder="Ex: Réduction de 10% sur tous les produits d'été"
                 required
@@ -186,7 +184,7 @@ export default function AddPromoCodePage() {
                   name="min_order_amount"
                   type="number"
                   min="0"
-                  value={formData.min_order_amount || ''}
+                  value={formData.minimum_order_amount || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 50000"
                 />
@@ -201,7 +199,7 @@ export default function AddPromoCodePage() {
                   name="max_discount_amount"
                   type="number"
                   min="0"
-                  value={formData.max_discount_amount || ''}
+                  value={formData.max_discount || ''}
                   onChange={handleInputChange}
                   placeholder="Ex: 20000"
                 />
@@ -230,7 +228,7 @@ export default function AddPromoCodePage() {
                 name="usage_limit"
                 type="number"
                 min="1"
-                value={formData.usage_limit || ''}
+                value={formData.max_discount || ''}
                 onChange={handleInputChange}
                 placeholder="Ex: 100 (laisser vide pour illimité)"
               />
