@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useCategory , useParentCategories,useCategories} from "@/hooks/api/categories"
 
 // Type pour les catégories
 type Category = {
@@ -72,47 +73,28 @@ export default function CategoryDetailPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-
   const id = params.id as string
+  const { data: categoryData, isLoading: isLoadingCategory } = useCategory(id)
+  const { data: parentCategoriesData, isLoading: isLoadingParentCategories } = useParentCategories()
+  const { data: categoriesData, isLoading: isLoadingCategories } = useCategories()
+
+  console.log(categoryData)
 
   useEffect(() => {
-    fetchCategory()
-    fetchParentCategories()
-  }, [id])
-
-  const fetchCategory = async () => {
-    try {
-      setIsLoading(true)
-      const token = getToken()
-      
-      const response = await fetch(`${API_BASE_URL}/categories/${id}/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      setCategory(data)
-      setProducts(data.products || [])
+    if (categoryData) {
+      setCategory(categoryData)
+      // setProducts(categoryData.products || [])
       setFormData({
-        name: data.name,
-        description: data.description || "",
-        is_main: data.is_main,
-        parent_category: typeof data.parent_category === 'number' ? data.parent_category : null,
+        name: categoryData.name,
+        description: categoryData.description || "",
+        is_main: categoryData.is_main,
+        parent_category: typeof categoryData.parent_category === 'number' ? categoryData.parent_category : null,
       })
-      setImagePreview(data.image)
-    } catch (error) {
-      console.error("Erreur lors de la récupération de la catégorie:", error)
-      toast.error("Impossible de charger les détails de la catégorie")
-    } finally {
-      setIsLoading(false)
+      setImagePreview(categoryData.image)
     }
-  }
+  }, [categoryData])
+
+
 
   const fetchParentCategories = async () => {
     try {

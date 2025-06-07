@@ -7,6 +7,11 @@ export const getCategories = async () => {
     return response.data
 }
 
+export const getCategory = async (id: string) => {
+    const response = await API.get<Category>(API_ENDPOINTS.categories.detail(id))
+    return response.data
+}
+
 export const deleteCategory = async (id: string) => {
     const response = await API.delete(API_ENDPOINTS.categories.delete(id))
     return response.data
@@ -18,7 +23,13 @@ export const updateCategory = async (id: string, data: Category) => {
 }
 
 export const addCategory = async (data: Category) => {
-    const response = await API.post(API_ENDPOINTS.categories.add, data)
+    const response = await API.post(API_ENDPOINTS.categories.add, data,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        }
+    )
     return response.data
 }
 export const getParentCategories = async () => {

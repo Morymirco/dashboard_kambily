@@ -31,7 +31,7 @@ export const API_ENDPOINTS = {
     //CATEGORIES
     categories :{
         base : `${API_BASE_URL}/categories/`,
-        detail : (id: string) => `${API_BASE_URL}/categories/${id}/`,
+        detail : (id: string) => `${API_BASE_URL}/categories/viewset/${id}/`,
         delete : (id: string) => `${API_BASE_URL}/categories/viewset/${id}/`,
         update : (id: string) => `${API_BASE_URL}/categories/viewset/${id}/`,
         parent : `${API_BASE_URL}/categories/viewset/parent/category/`,

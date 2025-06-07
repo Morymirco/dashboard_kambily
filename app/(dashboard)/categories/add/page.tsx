@@ -143,14 +143,15 @@ export default function AddCategoryPage() {
     
     try {
       // Créer l'objet de données pour le hook
-      const categoryData = {
-        name: formData.name,
-        description: formData.description,
-        slug: formData.slug,
-        is_main: formData.is_main,
-        parent_category: formData.is_main ? null : formData.parent_category,
-        image: imageFile
-      }
+        const categoryData = new FormData()
+        categoryData.append("name", formData.name)
+        categoryData.append("description", formData.description)
+        categoryData.append("slug", formData.slug)
+        categoryData.append("is_main", formData.is_main.toString())
+        categoryData.append("parent_category", formData.parent_category?.toString() || "")
+        if (imageFile) {
+          categoryData.append("image", imageFile)
+        }
       
       await addCategory.mutateAsync(categoryData as any)
       
