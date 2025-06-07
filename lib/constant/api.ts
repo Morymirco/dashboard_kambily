@@ -3,7 +3,13 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
 export const API_ENDPOINTS = {
     //AUTH 
     LOGIN: `${API_BASE_URL}/accounts/login/`,
-
+    //DASHBOARD
+    dashboard :{
+        base : `${API_BASE_URL}/managers/dashboard/`,
+        detailedStats : `${API_BASE_URL}/managers/dashboard/detailed-stats/`,
+        recentOrders : `${API_BASE_URL}/managers/dashboard/recent-orders/`,
+        topProducts : `${API_BASE_URL}/managers/dashboard/top-products/`,
+    },
     //PARTNERS
     parteners :{
         base : `${API_BASE_URL}/partenaire/`,

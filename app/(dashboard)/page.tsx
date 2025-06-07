@@ -13,6 +13,7 @@ import { getStatusText, getStatusColor } from "@/services/order-service"
 import type { DashboardStats, RecentOrder, TopProduct } from "@/services/dashboard-service"
 import { AlertCircle, Calendar } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useDashboardStats, useRecentOrders, useTopProducts } from "@/hooks/api/dashboard"
 
 // Importer dynamiquement les composants recharts pour éviter les problèmes côté serveur
 const DynamicCharts = dynamic(() => import("@/components/dashboard-charts"), {
@@ -32,34 +33,23 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRange] = useState<"today" | "this_week" | "this_month" | "this_year" | "total">("total")
 
+  const { data: statsData, isLoading: isLoadingStats } = useDashboardStats()
+  const { data: recentOrdersData, isLoading: isLoadingRecentOrders } = useRecentOrders()
+  const { data: topProductsData, isLoading: isLoadingTopProducts } = useTopProducts()
+
+
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Charger toutes les données en parallèle
-        const [statsData, ordersData, productsData] = await Promise.all([
-          fetchDashboardStats(),
-          fetchRecentOrders(),
-          fetchTopProducts(),
-        ])
-
-        console.log("Statistiques récupérées:", statsData) // Log pour débogage
-
-        setStats(statsData)
-        setRecentOrders(ordersData.orders.slice(0, 5)) // Limiter à 5 commandes
-        setTopProducts(productsData.top_products)
-      } catch (err: any) {
-        console.error("Erreur lors du chargement des données:", err)
-        setError(err.message || "Impossible de charger les données du tableau de bord")
-      } finally {
-        setLoading(false)
-      }
+    if (statsData) {
+      setStats(statsData)
     }
-
-    loadDashboardData()
-  }, [])
+    if (recentOrdersData) {
+      setRecentOrders(recentOrdersData.orders.slice(0, 5))
+    }
+    if (topProductsData) {
+      setTopProducts(topProductsData.top_products)
+    }
+    setLoading(false)
+  }, [statsData, recentOrdersData, topProductsData])
 
   // Fonction pour obtenir la classe CSS selon le statut
   const getStatusBadgeClass = (status: string) => {
