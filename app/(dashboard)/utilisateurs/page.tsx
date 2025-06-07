@@ -29,44 +29,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
+import { User,SortConfig } from "@/lib/types/users_list"
 import { fetchUsers, updateUserStatus, deleteUser } from "@/services/user-service"
 import { getAuthToken } from "@/lib/auth-utils"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useUsers } from "@/hooks/api/users"
 
-interface User {
-  id: number
-  first_name: string
-  last_name: string
-  email: string
-  phone_number: string
-  role: string
-  status: boolean
-  is_active: boolean
-  is_confirmed: boolean
-  is_accept_mail: boolean
-  bio: string | null
-  image: string | null
-  address: string
-  addresses: any[] // Vous pouvez définir une interface plus précise si nécessaire
-  created_at: string
-  updated_at: string
-  last_login: string | null
-  orders: {
-    total_orders: number
-    total_prices: number
-    cart: any[]
-    favorites: any[]
-    average_orders: number
-  }
-  total_favorites: number
-  total_orders: number
-  total_reviews: number
-}
-
-interface SortConfig {
-  key: keyof User | 'name'
-  direction: 'asc' | 'desc'
-}
 
 const columns = [
   {
@@ -141,6 +109,8 @@ export default function UtilisateursPage() {
     direction: "desc"
   })
 
+  const { data: usersData, isLoading: isLoadingUsers } = useUsers()
+
   // Effet pour le debounce de la recherche
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -150,50 +120,14 @@ export default function UtilisateursPage() {
     return () => clearTimeout(timer)
   }, [searchTerm])
 
-  // Effet pour charger les utilisateurs
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        setLoading(true)
-        const usersData = await fetchUsers(currentPage, debouncedSearchTerm, roleFilter, statusFilter)
-
-        if (Array.isArray(usersData)) {
-          setUsers(usersData as User[])
-          setTotalUsers(usersData.length)
-        } else {
-          console.error("Réponse invalide de l'API:", usersData)
-          setUsers([])
-          setTotalUsers(0)
-          setError("Format de réponse invalide. Veuillez réessayer plus tard.")
-        }
-      } catch (err) {
-        console.error("Erreur lors du chargement des utilisateurs:", err)
-        setUsers([])
-        setTotalUsers(0)
-        setError("Impossible de charger les utilisateurs. Veuillez réessayer plus tard.")
-      } finally {
-        setLoading(false)
-      }
+    if (usersData) {
+      setUsers(usersData)
     }
+    setLoading(false)
+  }, [usersData])
 
-    loadUsers()
-  }, [currentPage, debouncedSearchTerm, roleFilter, statusFilter])
 
-  // Ajouter un effet pour logger la disponibilité du token spécifiquement pour cette page
-  useEffect(() => {
-    const token = getAuthToken()
-    console.log(
-      `%c[Auth] Page Utilisateurs | Token: ${token ? "Disponible" : "Non disponible"}`,
-      token
-        ? "background: #4CAF50; color: white; padding: 2px 5px; border-radius: 3px;"
-        : "background: #F44336; color: white; padding: 2px 5px; border-radius: 3px;",
-    )
-
-    // Logger les headers qui seront utilisés pour les requêtes API
-    console.log("[Auth] Headers pour les requêtes API:", {
-      Authorization: token ? `Bearer ${token}` : "Non disponible",
-    })
-  }, [])
 
   const handleStatusChange = async (userId: number, newStatus: boolean) => {
     try {

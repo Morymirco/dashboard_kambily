@@ -47,5 +47,13 @@ export const API_ENDPOINTS = {
     reviews :{
         base : `${API_BASE_URL}/reviews/admin/`,
     },
+    //USERS
+    users :{
+        base : `${API_BASE_URL}/accounts/admin/`,
+        detail : (id: string) => `${API_BASE_URL}/accounts/admin/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/accounts/admin/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/accounts/admin/${id}/`,
+        add : `${API_BASE_URL}/users/`,
+    },
   
 }
