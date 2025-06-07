@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { fetchAllPartnerProducts, type PartnerProduct } from "@/services/partner-service"
+import { useAllPartnerProducts } from "@/hooks/api/parteners"
+import { PartnerProduct,PartnerProductsResponse } from "@/lib/types/parteners"
 
 export default function AllPartnerProductsPage() {
   const router = useRouter()
@@ -21,6 +22,7 @@ export default function AllPartnerProductsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalProducts, setTotalProducts] = useState(0)
+  const { data: productsData, isLoading: isLoadingProducts } = useAllPartnerProducts(currentPage, debouncedSearchTerm)
 
   // Effet pour le debounce de la recherche
   useEffect(() => {
@@ -33,24 +35,34 @@ export default function AllPartnerProductsPage() {
 
   // Charger les produits
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchAllPartnerProducts(currentPage, debouncedSearchTerm)
-        setProducts(data.results || [])
-        setTotalProducts(data.count)
-        setTotalPages(Math.ceil(data.count / 10)) // Supposons 10 produits par page
-      } catch (error) {
-        console.error("Erreur lors du chargement des produits:", error)
-        setError("Impossible de charger les produits des partenaires")
-        toast.error("Impossible de charger les produits des partenaires")
-      } finally {
-        setLoading(false)
-      }
+    if (productsData) {
+      console.log(productsData)
+       // Flatten all products from all partners into a single array
+    const allProducts = productsData.flatMap((partner : PartnerProduct) =>
+      partner.products.map((product : PartnerProduct) => ({
+        ...product,
+        partenaire: {
+          id: partner.id,
+          name: product.partenaire?.name,
+          email: product.partenaire?.email || "",
+          phone: product.partenaire?.phone || "",
+          address: product.partenaire?.address || "",
+          latitude: product.partenaire?.latitude || 0,
+          longitude: product.partenaire?.longitude || 0,
+          website: product.partenaire?.website || "",
+          created_at: product.partenaire?.created_at || "",
+          updated_at: product.partenaire?.updated_at || "",
+        },
+      })),
+    )
+      console.log(allProducts)
+      setProducts(allProducts)
+      setTotalProducts(allProducts.length)
+      setTotalPages(Math.ceil(allProducts.length / 10))
     }
-
-    loadProducts()
-  }, [currentPage, debouncedSearchTerm])
+    setLoading(false)
+  }, [productsData])
+ 
 
   // Formater le prix
   const formatPrice = (price: string) => {
