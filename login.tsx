@@ -30,7 +30,7 @@ export default function Login() {
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       // Rediriger vers le dashboard après connexion réussie
-      router.push("/dashboard")
+      router.push("/")
     } catch (error) {
       toast({
         variant: "destructive",

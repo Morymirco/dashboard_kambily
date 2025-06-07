@@ -1,41 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-import { PROTOCOL_HTTP, HOST_IP, PORT } from "@/constants"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
-import { ArrowLeft, Tags, Save, Upload, FolderTree } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/contexts/auth-context"
+import { useAddCategory, useParentCategories } from "@/hooks/api/categories"
+import { ArrowLeft, FolderTree, Save, Tags, Upload } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-
-// Type pour les catégories
-type Category = {
-  id: number
-  name: string
-  description: string
-  slug: string
-  is_main: boolean
-  image: string | null
-  created_at: string
-  updated_at: string
-  parent_category: number | null
-}
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 export default function AddCategoryPage() {
   const router = useRouter()
   const { getToken } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
-  const [parentCategories, setParentCategories] = useState<Category[]>([])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -47,9 +31,9 @@ export default function AddCategoryPage() {
   })
   const [errors, setErrors] = useState<{[key: string]: string}>({})
 
-  useEffect(() => {
-    fetchParentCategories()
-  }, [])
+  // Utilisation des hooks
+  const addCategory = useAddCategory()
+  const { data: parentCategories, isLoading: isLoadingCategories } = useParentCategories()
 
   // Générer automatiquement le slug à partir du nom
   useEffect(() => {
@@ -64,32 +48,7 @@ export default function AddCategoryPage() {
     }
   }, [formData.name])
 
-  const fetchParentCategories = async () => {
-    try {
-      setIsLoadingCategories(true)
-      const token = getToken()
-      
-      // Utiliser l'endpoint dédié aux catégories principales
-      const response = await fetch(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/categories/viewset/parent/category/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      setParentCategories(data)
-    } catch (error) {
-      console.error("Erreur lors de la récupération des catégories parentes:", error)
-      toast.error("Impossible de charger les catégories parentes")
-    } finally {
-      setIsLoadingCategories(false)
-    }
-  }
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -183,59 +142,24 @@ export default function AddCategoryPage() {
     }
     
     try {
-      setIsLoading(true)
-      const token = getToken()
-      
-      // Créer un FormData pour envoyer les données et l'image
-      const formDataToSend = new FormData()
-      formDataToSend.append("name", formData.name)
-      formDataToSend.append("description", formData.description)
-      formDataToSend.append("slug", formData.slug)
-      formDataToSend.append("is_main", formData.is_main.toString())
-      
-      // Si ce n'est pas une catégorie principale, parent_category est obligatoire
-      if (!formData.is_main) {
-        if (formData.parent_category === null) {
-          toast.error("Veuillez sélectionner une catégorie parente")
-          setIsLoading(false)
-          return
+      // Créer l'objet de données pour le hook
+        const categoryData = new FormData()
+        categoryData.append("name", formData.name)
+        categoryData.append("description", formData.description)
+        categoryData.append("slug", formData.slug)
+        categoryData.append("is_main", formData.is_main.toString())
+        categoryData.append("parent_category", formData.parent_category?.toString() || "")
+        if (imageFile) {
+          categoryData.append("image", imageFile)
         }
-        formDataToSend.append("parent_category", formData.parent_category.toString())
-      } else {
-        // Si c'est une catégorie principale, on envoie une chaîne vide pour parent_category
-        formDataToSend.append("parent_category", "")
-      }
       
-      if (imageFile) {
-        formDataToSend.append("image", imageFile)
-      }
-      
-      const response = await fetch(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/categories/viewset/`, {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataToSend
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        // Afficher les erreurs spécifiques retournées par l'API
-        const errorMessages = Object.entries(data)
-          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
-          .join("\n")
-        
-        throw new Error(`Erreur lors de la création de la catégorie:\n${errorMessages}`)
-      }
+      await addCategory.mutateAsync(categoryData as any)
       
       toast.success("Catégorie créée avec succès!")
       router.push("/categories")
     } catch (error) {
       console.error("Erreur lors de la création de la catégorie:", error)
       toast.error(error instanceof Error ? error.message : "Impossible de créer la catégorie")
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -347,8 +271,8 @@ export default function AddCategoryPage() {
                           <SelectValue placeholder="Sélectionner une catégorie parente" />
                         </SelectTrigger>
                         <SelectContent>
-                          {parentCategories.length > 0 ? (
-                            parentCategories.map(category => (
+                          {parentCategories && parentCategories.length > 0 ? (
+                            parentCategories.map((category: any) => (
                               <SelectItem key={category.id} value={category.id.toString()}>
                                 {category.name}
                               </SelectItem>
@@ -411,8 +335,8 @@ export default function AddCategoryPage() {
               <Button variant="outline" type="button" onClick={() => router.push("/categories")}>
                 Annuler
               </Button>
-              <Button type="submit" disabled={isLoading} className="bg-teal-600 hover:bg-teal-700">
-                {isLoading ? (
+              <Button type="submit" disabled={addCategory.isPending} className="bg-teal-600 hover:bg-teal-700">
+                {addCategory.isPending ? (
                   <span className="flex items-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -2,29 +2,27 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
 import {
-  Search,
-  MoreHorizontal,
-  PlusCircle,
-  Edit,
-  Trash2,
-  ExternalLink,
-  Mail,
-  Phone,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   Download,
+  Edit,
+  ExternalLink,
+  Mail,
+  MoreHorizontal,
   Package,
+  Phone,
+  PlusCircle,
+  RefreshCw,
+  Search,
+  Trash2,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { toast } from "react-hot-toast"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,70 +31,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { fetchPartners, type Partner } from "@/services/partner-service"
-import { getAuthToken } from "@/lib/auth-utils"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useBulkDeletePartners, useDeletePartner, usePartners } from "@/hooks/api/parteners"
+import { useDebounce } from "@/hooks/use-debounce"
+import { type Partner } from "@/services/partner-service"
 
 export default function PartenairesPage() {
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
-  const [partners, setPartners] = useState<Partner[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalPartners, setTotalPartners] = useState(0)
   const [selectedPartners, setSelectedPartners] = useState<number[]>([])
 
-  // Effet pour le debounce de la recherche
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm)
-    }, 500)
+  // Debounce de la recherche
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
-    return () => clearTimeout(timer)
-  }, [searchTerm])
-
-  // Charger les partenaires
-  useEffect(() => {
-    const loadPartners = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchPartners(currentPage, debouncedSearchTerm)
-        setPartners(data.results)
-        setTotalPartners(data.count)
-        setTotalPages(Math.ceil(data.count / 10)) // Supposons 10 partenaires par page
-      } catch (error) {
-        console.error("Erreur lors du chargement des partenaires:", error)
-        setError("Impossible de charger les partenaires")
-        toast.error("Impossible de charger les partenaires")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadPartners()
-  }, [currentPage, debouncedSearchTerm])
-
-  // Ajouter un effet pour logger la disponibilité du token spécifiquement pour cette page
-  useEffect(() => {
-    const token = getAuthToken()
-    console.log(
-      `%c[Auth] Page Partenaires | Token: ${token ? "Disponible" : "Non disponible"}`,
-      token
-        ? "background: #4CAF50; color: white; padding: 2px 5px; border-radius: 3px;"
-        : "background: #F44336; color: white; padding: 2px 5px; border-radius: 3px;",
-    )
-
-    // Logger les headers qui seront utilisés pour les requêtes API
-    console.log("[Auth] Headers pour les requêtes API:", {
-      Authorization: token ? `Bearer ${token}` : "Non disponible",
-    })
-  }, [])
+  // Utilisation des hooks
+  const { data: partnersData, isLoading: loading, error: queryError } = usePartners(currentPage, debouncedSearchTerm)
+  const deletePartner = useDeletePartner()
+  const bulkDeletePartners = useBulkDeletePartners()
+  
+  // Extraire les données depuis la réponse du hook
+  const partners = partnersData?.results || []
+  const totalPartners = partnersData?.count || 0
+  const totalPages = Math.ceil(totalPartners / 10)
+  const error = queryError ? "Impossible de charger les partenaires" : null
 
   // Filtrer les partenaires
-  const filteredPartners = partners.filter((partner) => {
+  const filteredPartners = partners.filter((partner: Partner) => {
     if (!searchTerm) return true
 
     return (
@@ -108,7 +71,7 @@ export default function PartenairesPage() {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedPartners(filteredPartners.map((partner) => partner.id))
+      setSelectedPartners(filteredPartners.map((partner: Partner) => partner.id))
     } else {
       setSelectedPartners([])
     }
@@ -123,21 +86,9 @@ export default function PartenairesPage() {
   const handleDeletePartner = async (id: number) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce partenaire ?")) {
       try {
-        const response = await fetch(`/api/partners/${id}`, {
-          method: "DELETE",
-        })
-
-        if (!response.ok) {
-          throw new Error("Erreur lors de la suppression du partenaire")
-        }
-
+        await deletePartner.mutateAsync(id.toString())
         toast.success("Partenaire supprimé avec succès")
-        // Recharger la liste des partenaires
-        const data = await fetchPartners(currentPage, debouncedSearchTerm)
-        setPartners(data.results)
-        setTotalPartners(data.count)
       } catch (error) {
-        console.error("Erreur:", error)
         toast.error("Erreur lors de la suppression du partenaire")
       }
     }
@@ -151,19 +102,12 @@ export default function PartenairesPage() {
 
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedPartners.length} partenaire(s) ?`)) {
       try {
-        const deletePromises = selectedPartners.map((id) => fetch(`/api/partners/${id}`, { method: "DELETE" }))
-
-        await Promise.all(deletePromises)
-
+        for (const id of selectedPartners) {
+          await bulkDeletePartners.mutateAsync(id.toString())
+        }
         toast.success(`${selectedPartners.length} partenaire(s) supprimé(s)`)
         setSelectedPartners([])
-
-        // Recharger la liste des partenaires
-        const data = await fetchPartners(currentPage, debouncedSearchTerm)
-        setPartners(data.results)
-        setTotalPartners(data.count)
       } catch (error) {
-        console.error("Erreur:", error)
         toast.error("Erreur lors de la suppression des partenaires")
       }
     }
@@ -452,7 +396,7 @@ export default function PartenairesPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredPartners.map((partner) => (
+                    filteredPartners.map((partner: Partner) => (
                       <TableRow
                         key={partner.id}
                         className="cursor-pointer hover:bg-muted/50"

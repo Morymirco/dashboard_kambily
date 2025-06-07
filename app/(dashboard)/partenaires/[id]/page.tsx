@@ -2,112 +2,40 @@
 
 import { ArrowLeft, Calendar, Clock, Edit, ExternalLink, Globe, Mail, MapPin, Phone, Trash2 } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { type PartnerProduct, type PartnerWithProducts } from "@/services/partner-service"
+import { useDeletePartner, usePartnerById, usePartnerProducts } from "@/hooks/api/parteners"
 
 export default function PartenaireDetailPage() {
   const params = useParams()
   const partnerId = params.id as string
-  
   const router = useRouter()
-  const [partner, setPartner] = useState<PartnerWithProducts | null>(null)
-  const [products, setProducts] = useState<PartnerProduct[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadPartner = async () => {
-      try {
-        setLoading(true)
-        const id = Number.parseInt(partnerId)
-        
-        // Récupérer les données du partenaire
-        const response = await fetch(`/api/partners/${id}`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-        
-        if (!response.ok) {
-          throw new Error("Erreur lors de la récupération du partenaire")
-        }
-        
-        // Convertir en objet JavaScript
-        const partnerData = await response.json()
-        setPartner(partnerData)
-        
-        // Extraire les produits directement de la réponse
-        if (partnerData.products && partnerData.products.results) {
-          console.log("Produits trouvés dans products.results")
-          setProducts(partnerData.products.results)
-        } else if (partnerData.products && Array.isArray(partnerData.products)) {
-          console.log("Produits trouvés dans un tableau products")
-          setProducts(partnerData.products)
-        } else {
-          console.log("Format de produits non reconnu, tentative de récupération séparée")
-          
-          // Récupérer les produits séparément
-          const productsResponse = await fetch(`/api/partners/${id}/products`, {
-            method: "GET",
-          })
-          
-          if (!productsResponse.ok) {
-            console.error("Erreur lors de la récupération des produits")
-            setProducts([])
-            return
-          }
-          
-          const productsData = await productsResponse.json()
-          
-          if (productsData.results) {
-            setProducts(productsData.results)
-          } else if (productsData.products && productsData.products.results) {
-            setProducts(productsData.products.results)
-          } else if (Array.isArray(productsData)) {
-            setProducts(productsData)
-          } else {
-            console.error("Format de données de produits non reconnu:", productsData)
-            setProducts([])
-          }
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement:", error)
-        setError("Impossible de charger les détails du partenaire")
-        toast.error("Impossible de charger les détails du partenaire")
-        setProducts([])
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Utilisation des hooks
+  const { data: partner, isLoading: partnerLoading, error: partnerError } = usePartnerById(partnerId)
+  const { data: productsData, isLoading: productsLoading } = usePartnerProducts(partnerId)
+  const deletePartner = useDeletePartner()
 
-    loadPartner()
-  }, [partnerId])
+  // Extraire les produits depuis la réponse
+  const products = productsData?.results || productsData?.products?.results || (Array.isArray(productsData) ? productsData : [])
+  
+  // États combinés
+  const loading = partnerLoading || productsLoading
+  const error = partnerError ? "Impossible de charger les détails du partenaire" : null
 
-  // Mettre à jour la fonction handleDelete pour utiliser la bonne URL
   const handleDelete = async () => {
     if (!partner) return
 
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer le partenaire "${partner.name}" ?`)) {
       try {
-        const response = await fetch(`/api/partners/${partner.id}`, {
-          method: "DELETE",
-        })
-
-        if (!response.ok) {
-          throw new Error("Erreur lors de la suppression du partenaire")
-        }
-
+        await deletePartner.mutateAsync(partner.id.toString())
         toast.success("Partenaire supprimé avec succès")
         router.push("/partenaires")
       } catch (error) {
-        console.error("Erreur:", error)
         toast.error("Erreur lors de la suppression du partenaire")
       }
     }
@@ -192,9 +120,14 @@ export default function PartenaireDetailPage() {
             <Edit className="h-4 w-4" />
             Modifier
           </Button>
-          <Button variant="destructive" className="flex items-center gap-2" onClick={handleDelete}>
+          <Button 
+            variant="destructive" 
+            className="flex items-center gap-2" 
+            onClick={handleDelete}
+            disabled={deletePartner.isPending}
+          >
             <Trash2 className="h-4 w-4" />
-            Supprimer
+            {deletePartner.isPending ? "Suppression..." : "Supprimer"}
           </Button>
         </div>
       </div>
@@ -369,7 +302,7 @@ export default function PartenaireDetailPage() {
                             <h3 className="font-medium truncate">{product.name}</h3>
                             <div className="flex flex-wrap gap-1 my-1">
                               {product.categories &&
-                                product.categories.map((category) => (
+                                product.categories.map((category: any) => (
                                   <span key={category.id} className="text-xs bg-muted px-2 py-0.5 rounded-full">
                                     {category.name}
                                   </span>
@@ -466,9 +399,14 @@ export default function PartenaireDetailPage() {
                 </Button>
               )}
 
-              <Button className="w-full justify-start" variant="destructive" onClick={handleDelete}>
+              <Button 
+                className="w-full justify-start" 
+                variant="destructive" 
+                onClick={handleDelete}
+                disabled={deletePartner.isPending}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Supprimer le partenaire
+                {deletePartner.isPending ? "Suppression..." : "Supprimer le partenaire"}
               </Button>
             </CardContent>
           </Card>

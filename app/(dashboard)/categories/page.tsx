@@ -1,52 +1,41 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useAuth } from "@/contexts/auth-context"
-import { PROTOCOL_HTTP, HOST_IP, PORT } from "@/constants"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from "@/components/ui/dialog"
-import { toast } from "sonner"
-import { Tags, Plus, Pencil, Trash2, FolderTree, AlertTriangle } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "@/contexts/auth-context"
+import { useCategories, useDeleteCategory, useUpdateCategory } from "@/hooks/api/categories"
+import { Category } from "@/lib/types/categories"
+import { useQueryClient } from "@tanstack/react-query"
+import { AlertTriangle, FolderTree, Pencil, Plus, Tags, Trash2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRef, useState } from "react"
+import { toast } from "sonner"
 
-// Type pour les catégories
-type Category = {
-  id: number
-  name: string
-  description: string
-  slug: string
-  is_main: boolean
-  image: string | null
-  created_at: string
-  updated_at: string
-  parent_category: number | null
-}
+
+
+
 
 export default function CategoriesPage() {
   const { getToken } = useAuth()
-  const [categories, setCategories] = useState<Category[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState("all")
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
   const [editFormData, setEditFormData] = useState({
     name: '',
     description: '',
@@ -54,6 +43,10 @@ export default function CategoriesPage() {
     is_main: false,
     parent_category: null as number | null
   })
+  
+  const { data: categories, isLoading } = useCategories()
+  const deleteCategory = useDeleteCategory()
+  const updateCategory = useUpdateCategory(categoryToEdit?.id.toString() || '')
 
   // Ajouter une référence pour l'input de fichier
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -62,34 +55,7 @@ export default function CategoriesPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchCategories()
-  }, [])
 
-  const fetchCategories = async () => {
-    try {
-      setIsLoading(true)
-      const token = getToken()
-      
-      const response = await fetch(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/categories/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      setCategories(data)
-    } catch (error) {
-      console.error("Erreur lors de la récupération des catégories:", error)
-      toast.error("Impossible de charger les catégories")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleDeleteClick = (category: Category) => {
     setCategoryToDelete(category)
@@ -100,33 +66,11 @@ export default function CategoriesPage() {
     if (!categoryToDelete) return
     
     try {
-      setIsDeleting(true)
-      const token = getToken()
+      await deleteCategory.mutateAsync(categoryToDelete.id.toString())
       
-      const response = await fetch(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/categories/viewset/${categoryToDelete.id}/`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      // Invalider et refetch les données des catégories
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
       
-      if (!response.ok) {
-        // Si la réponse contient un corps JSON avec des détails d'erreur
-        try {
-          const errorData = await response.json()
-          throw new Error(
-            Object.entries(errorData)
-              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
-              .join("\n")
-          )
-        } catch (jsonError) {
-          // Si la réponse n'est pas du JSON, utiliser le statut HTTP
-          throw new Error(`Erreur lors de la suppression: ${response.status} ${response.statusText}`)
-        }
-      }
-      
-      // Mettre à jour la liste des catégories
-      setCategories(categories.filter(cat => cat.id !== categoryToDelete.id))
       toast.success(`La catégorie "${categoryToDelete.name}" a été supprimée`)
       
       // Fermer le modal
@@ -135,8 +79,6 @@ export default function CategoriesPage() {
     } catch (error) {
       console.error("Erreur lors de la suppression de la catégorie:", error)
       toast.error(error instanceof Error ? error.message : "Impossible de supprimer la catégorie")
-    } finally {
-      setIsDeleting(false)
     }
   }
 
@@ -200,70 +142,35 @@ export default function CategoriesPage() {
     if (!categoryToEdit) return
     
     try {
-      setIsUpdating(true)
-      const token = getToken()
-      
-      // Utiliser FormData pour envoyer à la fois les données textuelles et l'image
-      const formData = new FormData()
-      
-      // Ajouter les champs textuels
-      formData.append('name', editFormData.name)
-      formData.append('description', editFormData.description)
-      formData.append('slug', editFormData.slug)
-      formData.append('is_main', editFormData.is_main.toString())
-      
-      if (editFormData.parent_category !== null) {
-        formData.append('parent_category', editFormData.parent_category.toString())
+      // Créer l'objet de données pour la mise à jour
+      const updateData = {
+        ...categoryToEdit,
+        name: editFormData.name,
+        description: editFormData.description,
+        slug: editFormData.slug,
+        is_main: editFormData.is_main,
+        parent_category: editFormData.parent_category,
+        // Note: L'image doit être gérée séparément car le hook actuel n'accepte que des données Category
+        image: selectedImage ? URL.createObjectURL(selectedImage) : categoryToEdit.image
       }
       
-      // Ajouter l'image si elle a été sélectionnée
-      if (selectedImage) {
-        formData.append('image', selectedImage)
-      }
+      await updateCategory.mutateAsync(updateData)
       
-      const response = await fetch(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/categories/viewset/${categoryToEdit.id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // Ne pas définir Content-Type car FormData le fait automatiquement avec la bonne boundary
-        },
-        body: formData
-      })
+      // Invalider et refetch les données des catégories
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
       
-      if (!response.ok) {
-        try {
-          const errorData = await response.json()
-          throw new Error(
-            Object.entries(errorData)
-              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`)
-              .join("\n")
-          )
-        } catch (jsonError) {
-          throw new Error(`Erreur lors de la mise à jour: ${response.status} ${response.statusText}`)
-        }
-      }
-      
-      const updatedCategory = await response.json()
-      
-      // Mettre à jour la liste des catégories
-      setCategories(categories.map(cat => 
-        cat.id === categoryToEdit.id ? updatedCategory : cat
-      ))
-      
-      toast.success(`La catégorie "${updatedCategory.name}" a été mise à jour`)
+      toast.success(`La catégorie "${updateData.name}" a été mise à jour`)
       setIsEditDialogOpen(false)
       setCategoryToEdit(null)
     } catch (error) {
       console.error("Erreur lors de la mise à jour de la catégorie:", error)
       toast.error(error instanceof Error ? error.message : "Impossible de mettre à jour la catégorie")
-    } finally {
-      setIsUpdating(false)
     }
   }
 
   // Filtrer les catégories principales et les sous-catégories
-  const mainCategories = categories.filter(cat => cat.is_main)
-  const subCategories = categories.filter(cat => !cat.is_main)
+  const mainCategories = categories?.filter(cat => cat.is_main) || []
+  const subCategories = categories?.filter(cat => !cat.is_main) || []
 
   return (
     <div className="container mx-auto py-6">
@@ -291,7 +198,7 @@ export default function CategoriesPage() {
                   <CategorySkeleton key={index} />
                 ))}
               </>
-            ) : categories.length > 0 ? (
+            ) : categories && categories.length > 0 ? (
               categories.map((category) => (
                 <CategoryCard 
                   key={category.id} 
@@ -378,17 +285,17 @@ export default function CategoriesPage() {
             <Button
               variant="outline"
               onClick={() => setIsDialogOpen(false)}
-              disabled={isDeleting}
+              disabled={deleteCategory.isPending}
             >
               Annuler
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              disabled={isDeleting}
+              disabled={deleteCategory.isPending}
               className="gap-2"
             >
-              {isDeleting ? (
+              {deleteCategory.isPending ? (
                 <>
                   <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -477,7 +384,7 @@ export default function CategoriesPage() {
                   >
                     <option value="">Sélectionner une catégorie parente</option>
                     {categories
-                      .filter(cat => cat.is_main && cat.id !== categoryToEdit?.id)
+                      ?.filter(cat => cat.is_main && cat.id !== categoryToEdit?.id)
                       .map(cat => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name}
@@ -549,16 +456,16 @@ export default function CategoriesPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
-                disabled={isUpdating}
+                disabled={updateCategory.isPending}
               >
                 Annuler
               </Button>
               <Button
                 type="submit"
-                disabled={isUpdating}
+                disabled={updateCategory.isPending}
                 className="gap-2"
               >
-                {isUpdating ? (
+                {updateCategory.isPending ? (
                   <>
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

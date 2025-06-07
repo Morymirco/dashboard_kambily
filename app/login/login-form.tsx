@@ -12,21 +12,35 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useLogin } from "@/hooks/api/userAuth"
+import { setCookieWithExpiry } from "@/helpers/cookies"
+import { useRouter } from "next/navigation"
 
 export default function LoginForm() {
   const [email, setEmail] = useState("admin@kambily.com")
   const [password, setPassword] = useState("admin123")
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-  const { login, loading } = useAuth()
+  const router = useRouter()
+  const { mutate: loginUser, isPending ,} = useLogin()
 
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+  if(isPending) return
+loginUser({ email, password },
+  {
+    onSuccess: (data) => {
+      console.log(data)
 
-    if (loading) return
-
-    console.log("Soumission du formulaire de connexion")
-    await login(email, password, rememberMe)
+      setCookieWithExpiry("accessToken", data.access_token);
+      setCookieWithExpiry("refreshToken", data.refresh_token);
+   
+      router.push("/");
+    }
+  }
+)
+   
   }
 
   return (
@@ -49,7 +63,7 @@ export default function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading}
+                disabled={isPending}
               />
             </div>
           </div>
@@ -69,13 +83,13 @@ export default function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={loading}
+                disabled={isPending}
               />
               <button
                 type="button"
                 className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
+                  disabled={isPending}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -86,7 +100,7 @@ export default function LoginForm() {
               id="remember"
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              disabled={loading}
+              disabled={isPending}
             />
             <Label
               htmlFor="remember"
@@ -97,8 +111,8 @@ export default function LoginForm() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>
-            {loading ? "Connexion en cours..." : "Se connecter"}
+          <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white" disabled={isPending}>
+            {isPending ? "Connexion en cours..." : "Se connecter"}
           </Button>
         </CardFooter>
       </form>

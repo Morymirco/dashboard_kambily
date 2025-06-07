@@ -21,17 +21,20 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { toast } from "react-hot-toast"
 
+import { useAcceptOrder, useOrder } from "@/hooks/api/orders"
 import {
-  acceptOrder,
-  fetchOrderDetail,
-  getPaymentMethodText,
+  type Attribut,
+  type OrderItem as OrderItemType,
+  type Variante
+} from "@/lib/types/orders"
+import {
   getStatusColor,
   getStatusText,
-  type OrderDetail,
 } from "@/services/order-service"
+import { useQueryClient } from "@tanstack/react-query"
 
 // Composant de squelette pour l'état de chargement
 const OrderDetailSkeleton = () => {
@@ -120,51 +123,13 @@ const OrderDetailSkeleton = () => {
   )
 }
 
-interface ProductImage {
-  id: number
-  image: string
-}
+// Types supprimés car maintenant importés depuis @/lib/types/orders
 
-interface Product {
-  id: number
-  name: string
-  regular_price: string
-  product_type?: string
-  images: ProductImage[]
-}
-
-interface Attribut {
-  attribut: {
-    nom: string
-  }
-  valeur: string
-  hex_code: string | null
-}
-
-interface Variante {
-  id: number
-  attributs: Attribut[]
-  quantity: number
-  regular_price: string
-}
-
-interface OrderItem {
-  id: number
-  quantity: number
-  price: string
-  product: Product
-  variante?: Variante
-}
-
-interface promo_code{
-
-}
-
-const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
+const OrderItem = ({ item }: { item: OrderItemType }) => {
   // Calcul du prix total pour l'item
   const getItemTotal = () => {
     const price = item.is_variante 
-      ? Number(item.product_variante.regular_price)
+      ? Number(item.product_variante?.regular_price)
       : Number(item.product.regular_price)
     return price * item.quantity
   }
@@ -175,8 +140,8 @@ const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
       <div className="relative h-20 w-20 overflow-hidden rounded-md border border-border">
         {item.is_variante ? (
           <Image
-            src={item.product_variante.image || "/placeholder.png"}
-            alt={item.product_variante.product.name}
+            src={item.product_variante?.image || "/placeholder.png"}
+            alt={item.product_variante?.product.name || "Produit"}
             fill
             className="object-cover"
           />
@@ -195,10 +160,10 @@ const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
         {/* Nom du produit et lien */}
         <div className="flex items-start justify-between">
           <Link
-            href={`/produits/${item.is_variante ? item.product_variante.product.id : item.product.id}`}
+            href={`/produits/${item.is_variante ? item.product_variante?.product.id : item.product.id}`}
             className="font-medium text-foreground hover:text-primary"
           >
-            {item.is_variante ? item.product_variante.product.name : item.product.name}
+            {item.is_variante ? item.product_variante?.product.name : item.product.name}
           </Link>
           <span className="text-sm font-medium">
             {getItemTotal().toLocaleString()} GNF
@@ -206,9 +171,9 @@ const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
         </div>
 
         {/* Attributs de la variante */}
-        {item.is_variante && item.product_variante.attributs && (
+        {item.is_variante && item.product_variante?.attributs && (
           <div className="mt-1 flex flex-wrap gap-2">
-            {item.product_variante.attributs.map((attr: Attribut) => (
+            {item.product_variante?.attributs.map((attr: Attribut) => (
               <span
                 key={attr.attribut.nom}
                 className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground"
@@ -236,7 +201,7 @@ const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
             <CreditCard className="h-4 w-4" />
             <span>Prix unitaire: {Number(
               item.is_variante 
-                ? item.product_variante.regular_price 
+                ? item.product_variante?.regular_price 
                 : item.product.regular_price
             ).toLocaleString()} GNF</span>
           </div>
@@ -244,12 +209,12 @@ const OrderItem = ({ item }: { item: ApiResponseOrder_items }) => {
 
         {/* Description courte du produit si disponible */}
         {(item.is_variante 
-          ? item.product_variante.product.short_description 
+          ? item.product_variante?.product.short_description 
           : item.product.short_description
         ) && (
           <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
             {item.is_variante 
-              ? item.product_variante.product.short_description 
+              ? item.product_variante?.product.short_description 
               : item.product.short_description}
           </p>
         )}
@@ -306,58 +271,31 @@ const getPaymentMethodText = (method: string | undefined | null): string => {
 export default function OrderDetailPage() {
   const { id } = useParams()
   const router = useRouter()
-  const [order, setOrder] = useState<OrderDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
   const [downloadingInvoice, setDownloadingInvoice] = useState(false)
-  const [isAccepting, setIsAccepting] = useState(false)
 
-  useEffect(() => {
-    const fetchOrderData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const data = await fetchOrderDetail(id as string)
-
-        console.log(data)
-        setOrder(data)
-      } catch (err) {
-        console.error("Erreur:", err)
-        setError((err as Error).message || "Erreur lors de la récupération de la commande")
-        toast.error("Erreur lors de la récupération de la commande")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (id) {
-      fetchOrderData()
-    }
-  }, [id])
+  // Utilisation des hooks
+  const { data: order, isLoading: loading, error: queryError } = useOrder(id as string)
+  const acceptOrderMutation = useAcceptOrder()
+  
+  const error = queryError ? "Erreur lors de la récupération de la commande" : null
 
   const handleAcceptOrder = async () => {
-    if (!order || isAccepting) return
+    if (!order || acceptOrderMutation.isPending) return
 
     try {
-      setIsAccepting(true)
       const loadingToast = toast.loading("Acceptation de la commande en cours...")
 
-      await acceptOrder(order.number.toString());
+      await acceptOrderMutation.mutateAsync(order.number.toString())
 
       toast.dismiss(loadingToast)
       toast.success("Commande acceptée avec succès")
 
-      // Mettre à jour l'état local
-      setOrder(prev => prev ? {
-        ...prev,
-        status: "accepted"
-      } : null)
+      // Invalider et refetch les données de la commande
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
 
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur lors de l'acceptation de la commande")
-    } finally {
-      setIsAccepting(false)
     }
   }
 
@@ -601,7 +539,7 @@ export default function OrderDetailPage() {
               Produits commandés ({order?.total_products})
             </h2>
             <div className="divide-y divide-border">
-              {order?.order_items.map((item) => (
+              {order?.order_items.map((item: OrderItemType) => (
                 <OrderItem key={item.pk} item={item} />
               ))}
             </div>
@@ -793,10 +731,10 @@ export default function OrderDetailPage() {
               {order?.status === "pending" && (
                 <button
                   onClick={handleAcceptOrder}
-                  disabled={isAccepting}
+                  disabled={acceptOrderMutation.isPending}
                   className="flex w-full items-center justify-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isAccepting ? (
+                  {acceptOrderMutation.isPending ? (
                     <>
                       <span className="mr-2 h-4 w-4 animate-spin">⌛</span>
                       Acceptation en cours...

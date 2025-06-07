@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { formatDate } from "date-fns"
+import { useReviews } from "@/hooks/api/reviews"
 
 // Type pour les avis
 type Review = {
@@ -56,42 +57,20 @@ export default function ReviewsAdminPage() {
   const [sortField, setSortField] = useState<string>("created_at")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
-  useEffect(() => {
-    fetchReviews()
-  }, [])
+  const { data: reviewsData, isLoading: reviewsLoading } = useReviews()
+
 
   useEffect(() => {
-    filterReviews()
-  }, [reviews, activeTab, searchTerm, sortField, sortDirection])
-
-  const fetchReviews = async () => {
-    try {
-      setIsLoading(true)
-      const token = getToken()
-      
-      const response = await fetch(`${API_BASE_URL}/reviews/admin/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      })
-      
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      setReviews(data)
-    } catch (error) {
-      console.error("Erreur lors de la récupération des avis:", error)
-      toast.error("Impossible de charger les avis")
-    } finally {
-      setIsLoading(false)
+    if (reviewsData) {
+      filterReviews()
     }
-  }
+    setIsLoading(false)
+  }, [reviewsData, activeTab, searchTerm, sortField, sortDirection])
+
+  
 
   const filterReviews = () => {
-    let filtered = [...reviews]
+    let filtered = [...reviewsData]
     
     // Filtrer par statut
     if (activeTab === "pending") {

@@ -140,6 +140,8 @@ export const fetchPartners = async (page = 1, search = "") => {
       method: "GET",
     })
 
+    console.log("response partners", response)
+
     if (!response.ok) {
       throw new Error("Erreur lors de la récupération des partenaires")
     }

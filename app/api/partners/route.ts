@@ -1,6 +1,6 @@
-import { type NextRequest, NextResponse } from "next/server"
 import { API_BASE_URL } from "@/constants"
 import { getServerFetchConfig } from "@/lib/server-utils"
+import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,12 +11,20 @@ export async function GET(request: NextRequest) {
     const searchParam = search ? `&search=${encodeURIComponent(search)}` : ""
     const config = getServerFetchConfig()
 
+    console.log("config", config)
+
     const response = await fetch(`${API_BASE_URL}/partenaire/?page=${page}${searchParam}`, {
       headers: config.headers,
       cache: "no-store",
     })
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return NextResponse.json(
+          { error: "Non autorisé", requiresAuth: true }, 
+          { status: response.status }
+        )
+      }
       return NextResponse.json({ error: "Erreur lors de la récupération des partenaires" }, { status: response.status })
     }
 
@@ -37,13 +45,18 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         ...config.headers,
-        // Supprimer Content-Type pour permettre à fetch de définir le bon boundary pour FormData
         "Content-Type": undefined as any,
       },
       body: formData,
     })
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        return NextResponse.json(
+          { error: "Non autorisé", requiresAuth: true }, 
+          { status: response.status }
+        )
+      }
       const errorData = await response.json()
       return NextResponse.json(
         { error: errorData.message || "Erreur lors de la création du partenaire" },
