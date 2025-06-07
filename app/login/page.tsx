@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth-actions"
+import { getAuthToken } from "@/lib/auth-utils"
 import { redirect } from "next/navigation"
 import LoginForm from "./login-form"
 
@@ -8,9 +8,9 @@ export default async function LoginPage({
   searchParams: { redirect?: string }
 }) {
   // Vérifier si l'utilisateur est déjà connecté
-  const session = await getSession()
+  const token = await getAuthToken()
 
-  if (session) {
+  if (token) {
     redirect(searchParams.redirect || "/")
   }
 

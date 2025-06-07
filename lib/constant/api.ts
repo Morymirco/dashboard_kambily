@@ -18,7 +18,7 @@ export const API_ENDPOINTS = {
     orders :{
         base : `${API_BASE_URL}/orders/admin/`,
         detail : (id: string) => `${API_BASE_URL}/orders/admin/${id}/`,
-        show : (id: string) => `${API_BASE_URL}/orders/show/admin/?number=${id}/`,
+        show : (id: string) => `${API_BASE_URL}/orders/show/admin/?number=${id}`,
         accept : (id: string) => `${API_BASE_URL}/orders/accept/admin/?number=${id}/`,
         export : `${API_BASE_URL}/orders/export/orders/`,
     },
