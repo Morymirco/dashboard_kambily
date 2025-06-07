@@ -27,3 +27,11 @@ export const fetchAllPartnerProducts = async (page = 1, search = "") => {
     })
     return response.data
 }
+export const deletePartner = async (id: string) => {
+    const response = await API.delete(API_ENDPOINTS.parteners.delete(id))
+    return response.data
+}
+export const bulkDeletePartners = async (id: string) => {
+    const response = await API.delete(API_ENDPOINTS.parteners.delete(id))
+    return response.data
+}
