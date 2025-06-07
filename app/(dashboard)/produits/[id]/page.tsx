@@ -15,140 +15,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Product, ProductDetail , ProductAttribute, ProductStats} from "@/lib/types/products"
+import { ProductsService } from "@/lib/services/products.service"
+import { useProduct } from "@/hooks/api/products"
 
 // Définir les interfaces pour les types
-interface ProductImage {
-  id: number;
-  image: string;
-  product: number;
-}
-
-interface ProductCategory {
-  id: number;
-  name: string;
-  slug: string;
-}
-
-interface ProductReview {
-  id: number;
-  rating: number;
-  comment: string;
-  created_at: string;
-  user: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    image: string | null;
-  };
-}
-
-interface ProductStats {
-  one_star: number;
-  two_star: number;
-  three_star: number;
-  four_star: number;
-  five_star: number;
-  total_reviews: number;
-  average_rating: number;
-}
-
-interface ProductAttribute {
-  id: number;
-  attribut: {
-    id: number;
-    nom: string;
-    valeur: string;
-  };
-  // autres propriétés si nécessaires
-}
-
-interface ProductVariant {
-  id: number;
-  attributs: {
-    id: number;
-    attribut: {
-      id: number;
-      nom: string;
-      valeur: string;
-    };
-  }[];
-  regular_price: string | number;
-  promo_price: string | number;
-  quantity: number;
-  images: ProductImage[];
-  sku?: string;
-}
-
-interface Product {
-  id: number;
-  name: string;
-  slug: string;
-  short_description: string;
-  long_description: string;
-  etat_stock: string;
-  regular_price: string | number;
-  promo_price: string | number;
-  sku: string;
-  stock_status: boolean;
-  quantity: number;
-  weight: number;
-  length: number;
-  width: number;
-  height: number;
-  product_type: string;
-  is_recommended: boolean;
-  categories: ProductCategory[];
-  etiquettes: any[];
-  images: ProductImage[];
-  variantes: ProductVariant[];
-  reviews: ProductReview[];
-  stats_star: ProductStats;
-  created_at: string;
-  updated_at: string;
-}
 
 const ProductDetailPage = () => {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
 
-  const [product, setProduct] = useState<Product>({
-    id: 0,
-    name: "",
-    slug: "",
-    short_description: "",
-    long_description: "",
-    etat_stock: "",
-    regular_price: "",
-    promo_price: "",
-    sku: "",
-    stock_status: true,
-    quantity: 0,
-    weight: 0,
-    length: 0,
-    width: 0,
-    height: 0,
-    product_type: "",
-    is_recommended: false,
-    categories: [],
-    etiquettes: [],
-    images: [],
-    variantes: [],
-    reviews: [],
-    stats_star: {
-      one_star: 0,
-      two_star: 0,
-      three_star: 0,
-      four_star: 0,
-      five_star: 0,
-      total_reviews: 0,
-      average_rating: 0,
-    },
-    created_at: "",
-    updated_at: "",
-  });
+  const { data: product, isLoading, isError, error } = useProduct(id);
 
-  const [error, setError] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [loadingVariant, setLoadingVariant] = useState(false);
@@ -158,7 +37,6 @@ const ProductDetailPage = () => {
   const [groupedAttributes, setGroupedAttributes] = useState<Record<string, ProductAttribute[]>>({});
   const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState("details");
-  const [loading, setLoading] = useState(true);
 
   const [newVariante, setNewVariante] = useState({
     attributs: [],
@@ -180,36 +58,6 @@ const ProductDetailPage = () => {
   });
 
   useEffect(() => {
-    const fetchProduct = () => {
-      setLoading(true);
-      const token = getAuthToken();
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      axios
-        .get(`${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/${id}/`, getAxiosConfig())
-        .then((response) => {
-          if (response.status === 200 || response.status === 201) {
-            setProduct(response.data);
-            if (response.data.variantes.length > 0) {
-              setSelectedVariant(response.data.variantes[0]);
-            }
-            console.log(response.data);
-          } else {
-            throw new Error("Erreur lors du chargement du produit");
-          }
-        })
-        .catch((err) => {
-          console.error("Erreur:", err);
-          setError(err.message);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    };
-
     const fetchAttributes = async () => {
       try {
         const token = getAuthToken();
@@ -247,7 +95,6 @@ const ProductDetailPage = () => {
     };
 
     if (id) {
-      fetchProduct();
       fetchAttributes();
     }
   }, [id, router]);
@@ -288,7 +135,7 @@ const ProductDetailPage = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-6">
         <div className="flex items-center gap-2 mb-6">
@@ -322,7 +169,7 @@ const ProductDetailPage = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="p-6">
         <div className="flex items-center gap-2 mb-6">
@@ -336,12 +183,16 @@ const ProductDetailPage = () => {
           <CardContent className="pt-6 text-center">
             <div className="text-red-500 text-4xl mb-4">⚠️</div>
             <CardTitle className="text-red-700 mb-2">Erreur de chargement</CardTitle>
-            <CardDescription className="text-red-600 mb-4">{error}</CardDescription>
+            <CardDescription className="text-red-600 mb-4">{error?.message}</CardDescription>
             <Button onClick={() => window.location.reload()}>Réessayer</Button>
           </CardContent>
         </Card>
       </div>
     );
+  }
+
+  if (!product) {
+    return <div>Produit non trouvé</div>;
   }
 
   const getStarCount = (star: number): number => {
@@ -590,7 +441,7 @@ const ProductDetailPage = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {product.variantes.map((variant, index) => (
+                          {product.variantes.map((variant: any, index: any) => (
                             <tr 
                               key={variant.id} 
                               className={`border-b dark:border-gray-800 hover:bg-muted/50 dark:hover:bg-gray-800/50 ${
@@ -620,7 +471,7 @@ const ProductDetailPage = () => {
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex flex-wrap gap-1">
-                                  {variant.attributs.map((attr) => (
+                                  {variant.attributs.map((attr: any) => (
                                     <Badge 
                                       key={attr.id} 
                                       variant="outline" 
@@ -733,7 +584,7 @@ const ProductDetailPage = () => {
                       </div>
                     ) : (
                       <div className="space-y-4 mt-2">
-                        {product.reviews.map((review, index) => (
+                        {product.reviews.map((review: any, index: any) => (
                           <div
                             key={index}
                             className="bg-muted dark:bg-black rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:shadow-sm transition-shadow"

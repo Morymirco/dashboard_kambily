@@ -12,6 +12,13 @@ export async function GET(request: NextRequest) {
     })
 
     if (!response.ok) {
+      // Retourner l'erreur avec le statut original pour que le client puisse gérer
+      if (response.status === 401 || response.status === 403) {
+        return NextResponse.json(
+          { error: "Non autorisé", requiresAuth: true }, 
+          { status: response.status }
+        )
+      }
       return NextResponse.json({ error: "Erreur lors de la récupération des commandes" }, { status: response.status })
     }
 

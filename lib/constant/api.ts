@@ -1,0 +1,35 @@
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL 
+
+export const API_ENDPOINTS = {
+    //AUTH 
+    LOGIN: `${API_BASE_URL}/accounts/login/`,
+
+    //PARTNERS
+    parteners :{
+        base : `${API_BASE_URL}/partenaire/`,
+        detail : (id: string) => `${API_BASE_URL}/partenaire/${id}/`,
+    },
+    //PRODUCTS
+    products :{
+        base : `${API_BASE_URL}/products/`,
+        detail : (id: string) => `${API_BASE_URL}/products/${id}/`,
+    },
+    //ORDERS
+    orders :{
+        base : `${API_BASE_URL}/orders/admin/`,
+        detail : (id: string) => `${API_BASE_URL}/orders/admin/${id}/`,
+        show : (id: string) => `${API_BASE_URL}/orders/show/admin/?number=${id}/`,
+        accept : (id: string) => `${API_BASE_URL}/orders/accept/admin/?number=${id}/`,
+        export : `${API_BASE_URL}/orders/export/orders/`,
+    },
+    //CATEGORIES
+    categories :{
+        base : `${API_BASE_URL}/categories/`,
+        detail : (id: string) => `${API_BASE_URL}/categories/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/categories/viewset/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/categories/viewset/${id}/`,
+        parent : `${API_BASE_URL}/categories/viewset/parent/category/`,
+        add : `${API_BASE_URL}/categories/viewset/`,
+    },
+  
+}

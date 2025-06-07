@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { Product } from "@/types"
+import type { Product } from "@/lib/types/products"
 import { MoreHorizontal, Eye } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -28,9 +28,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <div className="border rounded-md p-4">
       <h3 className="text-lg font-semibold">{product.name}</h3>
-      <p className="text-gray-500">{product.description}</p>
+      <p className="text-gray-500">{product.short_description}</p>
       <div className="mt-2">
-        <span>Price: ${product.price}</span>
+        <span>Prix: {product.regular_price}</span>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger>

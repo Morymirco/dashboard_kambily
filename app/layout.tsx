@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/auth-context"
 
+
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -13,7 +14,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Kambily Admin",
   description: "Tableau de bord d'administration Kambily",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -26,8 +27,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            {children}
-            <Toaster position="top-right" />
+            <QueryProvider>
+           
+              {children}
+              <Toaster position="top-right" />
+            </QueryProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
@@ -35,6 +39,8 @@ export default function RootLayout({
   )
 }
 
+// Composant pour initialiser l'intercepteur côté client
 
 
 import './globals.css'
+import { QueryProvider } from "@/components/query-provider"

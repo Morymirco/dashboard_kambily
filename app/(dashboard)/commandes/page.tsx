@@ -2,9 +2,6 @@
 
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
 import { format, parse } from "date-fns"
 import { fr } from "date-fns/locale"
 import {
@@ -22,15 +19,15 @@ import {
   Search,
   ShoppingBag,
   Trash2,
-  User,
-  CreditCard,
-  Banknote,
+  User
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { toast } from "react-hot-toast"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,21 +36,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  fetchOrders,
-  exportOrders,
-  getStatusColor,
-  getStatusText,
-  getPaymentMethodText,
-  type Order,
-} from "@/services/order-service"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useAcceptOrder, useExportOrders, useOrders } from "@/hooks/api/orders"
 import { getAuthToken } from "@/lib/auth-utils"
+import {
+  getStatusColor,
+  getStatusText
+} from "@/services/order-service"
+import { useQueryClient } from "@tanstack/react-query"
+import { OrderData } from "@/lib/types/orders"
+
+
 
 export default function CommandesPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [selectedOrders, setSelectedOrders] = useState<number[]>([])
@@ -65,18 +65,23 @@ export default function CommandesPage() {
     endDate: "",
   })
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const [orders, setOrders] = useState<Order[]>([])
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [filteredOrders, setFilteredOrders] = useState<OrderData[]>([])
   const [sortConfig, setSortConfig] = useState({
     key: "created_at",
     direction: "desc",
   })
-  const [exportLoading, setExportLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalOrders, setTotalOrders] = useState(0)
+
+  // Utilisation des hooks
+  const { data: ordersData, isLoading: loading, error: queryError, refetch } = useOrders(currentPage, debouncedSearchTerm, filters.status)
+  const exportOrders = useExportOrders()
+  const acceptOrder = useAcceptOrder()
+
+  // Extraire les données depuis la réponse du hook
+  const orders = ordersData?.orders || []
+  const totalOrders = ordersData?.total || orders.length
+  const totalPages = Math.ceil(totalOrders / 10)
+  const error = queryError ? "Erreur lors du chargement des commandes" : null
 
   const datePickerRef = useRef<HTMLDivElement>(null)
 
@@ -105,8 +110,8 @@ export default function CommandesPage() {
 
   // Charger les commandes
   useEffect(() => {
-    fetchOrdersData()
-  }, [debouncedSearchTerm, currentPage])
+    refetch()
+  }, [debouncedSearchTerm, currentPage, refetch])
 
   // Ajouter un effet pour logger la disponibilité du token spécifiquement pour cette page
   useEffect(() => {
@@ -158,34 +163,8 @@ export default function CommandesPage() {
       result = sortOrders(result, sortConfig.key, sortConfig.direction as "asc" | "desc")
 
       setFilteredOrders(result)
-      setTotalOrders(result.length)
-      setTotalPages(Math.ceil(result.length / 10)) // 10 commandes par page
     }
   }, [filters, orders, sortConfig])
-
-  const fetchOrdersData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetchOrders()
-
-      if (Array.isArray(response.orders)) {
-        setOrders(response.orders)
-        setFilteredOrders(response.orders)
-        setTotalOrders(response.orders.length)
-        setTotalPages(Math.ceil(response.orders.length / 10)) // 10 commandes par page
-      } else {
-        throw new Error("La réponse de l'API n'est pas un tableau")
-      }
-    } catch (err) {
-      console.error("Erreur:", err)
-      setError("Erreur lors du chargement des commandes")
-      toast.error("Erreur lors du chargement des commandes")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const parseOrderDate = (dateString: string): Date => {
     try {
@@ -256,13 +235,12 @@ export default function CommandesPage() {
     }
   }
 
-  // Remplacer la fonction handleExportOrders complète
+  // Fonction pour gérer l'exportation des commandes
   const handleExportOrders = async () => {
     try {
-      setExportLoading(true)
       const loadingToast = toast.loading("Exportation en cours...")
 
-      const data = await exportOrders()
+      const data = await exportOrders.mutateAsync()
 
       // Lien du fichier excel
       const url = data.data.file
@@ -280,8 +258,21 @@ export default function CommandesPage() {
     } catch (err) {
       console.error("Erreur:", err)
       toast.error("Erreur lors de l'exportation des commandes")
-    } finally {
-      setExportLoading(false)
+    }
+  }
+
+  // Fonction pour accepter une commande
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      await acceptOrder.mutateAsync(orderId)
+      
+      // Invalider et refetch les données des commandes
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      
+      toast.success("Commande acceptée avec succès")
+    } catch (error) {
+      console.error("Erreur lors de l'acceptation de la commande:", error)
+      toast.error("Impossible d'accepter la commande")
     }
   }
 
@@ -300,7 +291,7 @@ export default function CommandesPage() {
   }
 
   // Modifiez la fonction de tri pour inclure le tri par statut de paiement
-  const sortOrders = (orders: Order[], key: string, direction: "asc" | "desc") => {
+  const sortOrders = (orders: OrderData[], key: string, direction: "asc" | "desc") => {
     return [...orders].sort((a, b) => {
       switch (key) {
         case "created_at":
@@ -512,7 +503,7 @@ export default function CommandesPage() {
           <h3 className="text-lg font-medium text-red-800 dark:text-red-300 mb-2">Erreur de chargement</h3>
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <button
-            onClick={() => fetchOrdersData()}
+            onClick={() => refetch()}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 inline-flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
@@ -540,15 +531,15 @@ export default function CommandesPage() {
             </Button>
           )}
 
-          <Button
-            variant="outline"
-            onClick={handleExportOrders}
-            disabled={exportLoading}
-            className="flex items-center gap-2"
-          >
-            {exportLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Exporter
-          </Button>
+                      <Button
+              variant="outline"
+              onClick={handleExportOrders}
+              disabled={exportOrders.isPending}
+              className="flex items-center gap-2"
+            >
+              {exportOrders.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Exporter
+            </Button>
         </div>
       </div>
 
@@ -568,7 +559,7 @@ export default function CommandesPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Commandes en attente</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.filter((o) => o.status === "pending").length}</div>
+            <div className="text-2xl font-bold">{orders.filter((o: OrderData) => o.status === "pending").length}</div>
             <p className="text-xs text-yellow-500 dark:text-yellow-400">Nécessite votre attention</p>
           </CardContent>
         </Card>
@@ -577,7 +568,7 @@ export default function CommandesPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Commandes livrées</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.filter((o) => o.status === "delivered").length}</div>
+            <div className="text-2xl font-bold">{orders.filter((o: OrderData) => o.status === "delivered").length}</div>
             <p className="text-xs text-green-500 dark:text-green-400">+18% par rapport au mois dernier</p>
           </CardContent>
         </Card>
@@ -846,6 +837,14 @@ export default function CommandesPage() {
                               <DropdownMenuItem onClick={() => router.push(`/commandes/${order.number}`)}>
                                 Voir les détails
                               </DropdownMenuItem>
+                              {order.status === "pending" && (
+                                <DropdownMenuItem 
+                                  onClick={() => handleAcceptOrder(order.number.toString())}
+                                  disabled={acceptOrder.isPending}
+                                >
+                                  {acceptOrder.isPending ? "Acceptation..." : "Accepter la commande"}
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive">Supprimer</DropdownMenuItem>
                             </DropdownMenuContent>
