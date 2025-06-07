@@ -2,29 +2,27 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
 import {
-  Search,
-  MoreHorizontal,
-  PlusCircle,
-  Edit,
-  Trash2,
-  ExternalLink,
-  Mail,
-  Phone,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   Download,
+  Edit,
+  ExternalLink,
+  Mail,
+  MoreHorizontal,
   Package,
+  Phone,
+  PlusCircle,
+  RefreshCw,
+  Search,
+  Trash2,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "react-hot-toast"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,21 +31,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { fetchPartners, type Partner } from "@/services/partner-service"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { usePartners } from "@/hooks/api/parteners"
 import { getAuthToken } from "@/lib/auth-utils"
+import { type Partner } from "@/services/partner-service"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function PartenairesPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
-  const [partners, setPartners] = useState<Partner[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalPartners, setTotalPartners] = useState(0)
   const [selectedPartners, setSelectedPartners] = useState<number[]>([])
+
+  // Utilisation des hooks
+  const { data: partnersData, isLoading: loading, error: queryError, refetch } = usePartners(currentPage, debouncedSearchTerm)
+  
+  // Extraire les données depuis la réponse du hook
+  const partners = partnersData?.results || []
+  const totalPartners = partnersData?.count || 0
+  const totalPages = Math.ceil(totalPartners / 10)
+  const error = queryError ? "Impossible de charger les partenaires" : null
 
   // Effet pour le debounce de la recherche
   useEffect(() => {
@@ -57,27 +64,6 @@ export default function PartenairesPage() {
 
     return () => clearTimeout(timer)
   }, [searchTerm])
-
-  // Charger les partenaires
-  useEffect(() => {
-    const loadPartners = async () => {
-      try {
-        setLoading(true)
-        const data = await fetchPartners(currentPage, debouncedSearchTerm)
-        setPartners(data.results)
-        setTotalPartners(data.count)
-        setTotalPages(Math.ceil(data.count / 10)) // Supposons 10 partenaires par page
-      } catch (error) {
-        console.error("Erreur lors du chargement des partenaires:", error)
-        setError("Impossible de charger les partenaires")
-        toast.error("Impossible de charger les partenaires")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadPartners()
-  }, [currentPage, debouncedSearchTerm])
 
   // Ajouter un effet pour logger la disponibilité du token spécifiquement pour cette page
   useEffect(() => {
@@ -96,7 +82,7 @@ export default function PartenairesPage() {
   }, [])
 
   // Filtrer les partenaires
-  const filteredPartners = partners.filter((partner) => {
+  const filteredPartners = partners.filter((partner: Partner) => {
     if (!searchTerm) return true
 
     return (
@@ -108,7 +94,7 @@ export default function PartenairesPage() {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      setSelectedPartners(filteredPartners.map((partner) => partner.id))
+      setSelectedPartners(filteredPartners.map((partner: Partner) => partner.id))
     } else {
       setSelectedPartners([])
     }
@@ -132,10 +118,8 @@ export default function PartenairesPage() {
         }
 
         toast.success("Partenaire supprimé avec succès")
-        // Recharger la liste des partenaires
-        const data = await fetchPartners(currentPage, debouncedSearchTerm)
-        setPartners(data.results)
-        setTotalPartners(data.count)
+        // Invalider et refetch les données des partenaires
+        queryClient.invalidateQueries({ queryKey: ['partners'] })
       } catch (error) {
         console.error("Erreur:", error)
         toast.error("Erreur lors de la suppression du partenaire")
@@ -158,10 +142,8 @@ export default function PartenairesPage() {
         toast.success(`${selectedPartners.length} partenaire(s) supprimé(s)`)
         setSelectedPartners([])
 
-        // Recharger la liste des partenaires
-        const data = await fetchPartners(currentPage, debouncedSearchTerm)
-        setPartners(data.results)
-        setTotalPartners(data.count)
+        // Invalider et refetch les données des partenaires
+        queryClient.invalidateQueries({ queryKey: ['partners'] })
       } catch (error) {
         console.error("Erreur:", error)
         toast.error("Erreur lors de la suppression des partenaires")
@@ -452,7 +434,7 @@ export default function PartenairesPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredPartners.map((partner) => (
+                    filteredPartners.map((partner: Partner) => (
                       <TableRow
                         key={partner.id}
                         className="cursor-pointer hover:bg-muted/50"

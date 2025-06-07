@@ -8,11 +8,16 @@ export const API_ENDPOINTS = {
     parteners :{
         base : `${API_BASE_URL}/partenaire/`,
         detail : (id: string) => `${API_BASE_URL}/partenaire/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/partenaire/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/partenaire/${id}/`,
+        partnerProducts : (id: string) => `${API_BASE_URL}/partenaire/products/${id}/`,
+        allProducts : `${API_BASE_URL}/partenaire/products/`,
     },
     //PRODUCTS
     products :{
         base : `${API_BASE_URL}/products/`,
         detail : (id: string) => `${API_BASE_URL}/products/${id}/`,
+        
     },
     //ORDERS
     orders :{
