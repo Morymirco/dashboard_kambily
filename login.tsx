@@ -30,7 +30,7 @@ export default function Login() {
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       // Rediriger vers le dashboard après connexion réussie
-      router.push("/")
+      // router.push("/")
     } catch (error) {
       toast({
         variant: "destructive",
@@ -103,7 +103,7 @@ export default function Login() {
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white" disabled={isLoading}>
-                {isLoading ? "Connexion en cours..." : "Se connecter"}
+                {isLoading ? "Connexion en cours.." : "Se connecter"}
               </Button>
             </CardFooter>
           </form>

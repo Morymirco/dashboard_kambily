@@ -1,9 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode, useRef } from "react"
-import { toast } from "react-hot-toast"
 import { API_BASE_URL } from "@/constants"
-import { setAuthToken, removeAuthToken, getAuthToken } from "@/lib/auth-utils"
+import { getCookie, removeCookie, setCookieWithExpiry } from "@/helpers/cookies"
+import { getAuthToken, removeAuthToken } from "@/lib/auth-utils"
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
+import { toast } from "react-hot-toast"
 
 // Clés utilisées pour le localStorage
 const TOKEN_KEY = "auth_token"
@@ -128,6 +129,7 @@ type AuthContextType = {
   updateUserData: (userData: Partial<User>) => void
   fetchUserProfile: () => Promise<boolean>
   isLoadingProfile: boolean
+  isAuthenticated: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -145,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   
+  
   // Référence pour éviter les appels multiples
   const profileFetchedRef = useRef(false)
 
@@ -152,17 +155,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const loadUserFromStorage = () => {
       try {
-        const storedToken = localStorage.getItem(TOKEN_KEY)
-        const storedUser = localStorage.getItem(USER_KEY)
+        const storedToken = getCookie("accessToken")
+        let storedUser = getCookie("user")
+        
+        console.log("=== CHARGEMENT DEPUIS COOKIES ===")
+        console.log("Token:", storedToken ? "EXISTS" : "MISSING")
+        console.log("User cookie:", storedUser ? "EXISTS" : "MISSING")
+        
+        // Si pas de cookie user, essayer localStorage
+        if (!storedUser) {
+          console.log("Trying localStorage fallback...")
+          storedUser = localStorage.getItem("user")
+          console.log("User localStorage:", storedUser ? "EXISTS" : "MISSING")
+        }
 
         if (storedToken && storedUser) {
-          setUser(JSON.parse(storedUser))
+          console.log("Parsing user data...")
+          const parsedUser = JSON.parse(storedUser)
+          console.log("Parsed user:", parsedUser)
+          setUser(parsedUser)
+        } else {
+          console.log("Données manquantes - pas de chargement")
+          console.log("Token exists:", !!storedToken, "User exists:", !!storedUser)
         }
       } catch (error) {
         console.error("Erreur lors du chargement de l'utilisateur:", error)
         // En cas d'erreur, nettoyer le localStorage
-        localStorage.removeItem(TOKEN_KEY)
-        localStorage.removeItem(USER_KEY)
+        removeCookie("accessToken")
+        removeCookie("user")
       } finally {
         setLoading(false)
       }
@@ -172,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const getToken = () => {
-    return localStorage.getItem(TOKEN_KEY)
+    return getCookie("accessToken")
   }
 
   // Fonction pour récupérer le profil complet de l'utilisateur
@@ -209,7 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData)
       
       // Mettre à jour le localStorage
-      localStorage.setItem(USER_KEY, JSON.stringify(userData))
+      setCookieWithExpiry("user", JSON.stringify(userData))
       
       // Marquer que le profil a été chargé
       profileFetchedRef.current = true
@@ -270,22 +290,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { access_token, user, expires_in } = data
 
-      // Stocker dans localStorage
-      localStorage.setItem(TOKEN_KEY, access_token)
-      setAuthToken(access_token)
+      console.log("data",data)
+      console.log("user",user)
+      console.log("access_token",access_token)
+    
 
-      const userWithExpiry = {
-        ...user,
-        token_expires_in: expires_in,
+      // setIsAuthenticated(true)
+
+                    // Stocker dans localStorage
+      console.log("=== STORING COOKIES ===")
+      console.log("Setting accessToken cookie...")
+      setCookieWithExpiry("accessToken", access_token)
+      
+      console.log("Setting user cookie...")
+      const userString = JSON.stringify(user)
+      console.log("User string length:", userString.length)
+      console.log("User string preview:", userString.substring(0, 200) + "...")
+      
+      // Essayer avec localStorage aussi comme fallback
+      try {
+        setCookieWithExpiry("user", userString)
+        localStorage.setItem("user", userString)
+        console.log("User data stored in both cookie and localStorage")
+      } catch (error) {
+        console.error("Error storing user data:", error)
+        // Si le cookie échoue, utiliser localStorage uniquement
+        localStorage.setItem("user", userString)
+        console.log("Fallback: User data stored only in localStorage")
       }
-
-      localStorage.setItem(USER_KEY, JSON.stringify(userWithExpiry))
+      
+      // Vérifier immédiatement
+      setTimeout(() => {
+        console.log("=== VERIFICATION COOKIES ===")
+        console.log("accessToken cookie:", getCookie("accessToken") ? "SET" : "NOT SET")
+        console.log("user cookie:", getCookie("user") ? "SET" : "NOT SET")
+        console.log("user localStorage:", localStorage.getItem("user") ? "SET" : "NOT SET")
+      }, 100)
 
       // Mettre à jour l'état
-      setUser(userWithExpiry)
+      setUser(user)
 
       // Vérifier que le token est bien stocké
-      const storedToken = getAuthToken()
+      const storedToken = getCookie("accessToken")
       console.log(
         `%c[Auth] Token stocké: ${storedToken ? "Oui" : "Non"}`,
         storedToken
@@ -315,8 +361,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("%c[Auth] Déconnexion...", "background: #FF9800; color: white; padding: 2px 5px; border-radius: 3px;")
 
     // Supprimer les données du localStorage
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+    removeCookie("accessToken")
+    removeCookie("user")
     removeAuthToken()
 
     // Mettre à jour l'état
@@ -350,14 +396,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Vérifier d'autres rôles si nécessaire
-    return user.role?.includes(role)
+    return !!user.role?.includes(role)
   } 
+
+  const isAuthenticated = () => {
+    const token = getCookie("accessToken")
+    let userCookie = getCookie("user")
+    
+    // Si pas de cookie, essayer localStorage  
+    if (!userCookie) {
+      userCookie = localStorage.getItem("user")
+    }
+    
+    console.log("=== isAuthenticated CHECK ===")
+    console.log("accessToken:", token ? "YES" : "NO")
+    console.log("user data:", userCookie ? "YES" : "NO")
+    console.log("current user state:", user ? "YES" : "NO")
+    
+    // Vérifier d'abord si on a un utilisateur en mémoire ET un token
+    if (user && token) {
+      console.log("Auth: User in memory + token = TRUE")
+      return true
+    }
+    
+    // Sinon vérifier les données stockées
+    const result = !!token && !!userCookie
+    console.log("Auth: Storage check result =", result)
+    return result
+  }
+
+  useEffect(() => {
+    console.log("isAuthenticated",isAuthenticated())
+  }, [user])
 
   const value = {
     user,
     loading,
     login,
     logout,
+    isAuthenticated,
     hasRole,
     getToken,
     setUser,

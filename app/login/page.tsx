@@ -11,7 +11,9 @@ export default async function LoginPage({
   const token = await getAuthToken()
 
   if (token) {
-    redirect(searchParams.redirect || "/")
+
+    console.log("redirection vers la page d'accueil",token)
+    // redirect(searchParams.redirect || "/")
   }
 
   return (
