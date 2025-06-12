@@ -41,6 +41,8 @@ export default function PromoCodesPage() {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const { data: promoCodesData, isLoading } = usePromoCodes(currentPage, debouncedSearchTerm);
+
+  console.log(promoCodesData);
   // const deletePromoCode = useDeletePromoCode();
 
   const promoCodes = promoCodesData || [];
@@ -103,7 +105,7 @@ export default function PromoCodesPage() {
           : new Date() > new Date(code.end_date)
           ? "Expiré"
           : "Actif",
-        Utilisations: code.used_count + (code.usage_limit ? ` / ${code.usage_limit}` : ""),
+        // Utilisations: code.used_count + (code.usage_limit ? ` / ${code.usage_limit}` : ""),
         "Date de début": formatDate(code.start_date),
         "Date de fin": formatDate(code.end_date),
       }));
@@ -227,7 +229,7 @@ export default function PromoCodesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {promoCodes.reduce((total, code) => total + (code?.used_count || 0), 0)}
+              {/* {promoCodes.reduce((total, code) => total + (code?.used_count || 0), 0)} */}
             </div>
             <p className="text-xs text-blue-500">Total</p>
           </CardContent>
@@ -301,8 +303,8 @@ export default function PromoCodesPage() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
-                            {promoCode.used_count}
-                            {promoCode.usage_limit && ` / ${promoCode.usage_limit}`}
+                            {/* {promoCode.used_count}
+                            {promoCode.usage_limit && ` / ${promoCode.usage_limit}`} */}
                           </div>
                         </TableCell>
                         <TableCell>

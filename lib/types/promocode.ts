@@ -1,3 +1,10 @@
+export interface PromoCodeResponse {
+    results: PromoCode[]
+    count: number
+    next: string
+    previous: string
+}
+
 export interface PromoCode {
     id: number
     code: string
