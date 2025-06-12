@@ -14,7 +14,7 @@ export interface OrderData {
       payment_method?: string
       payment_status?: string
     }
-}
+  }
 
 // Types pour les détails de commande
 export interface ProductImage {

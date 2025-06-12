@@ -297,7 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // setIsAuthenticated(true)
 
-                    // Stocker dans localStorage
+      // Stocker dans localStorage
       console.log("=== STORING COOKIES ===")
       console.log("Setting accessToken cookie...")
       setCookieWithExpiry("accessToken", access_token)
