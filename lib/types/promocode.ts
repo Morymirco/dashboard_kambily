@@ -14,9 +14,14 @@ export interface PromoCode {
     minimum_order_amount: string
     is_active: boolean
     start_date: string
+    usage_count: UsageCount
     end_date: string
 }
 
+interface UsageCount {
+    current: number
+    max: string
+}
 
 
 

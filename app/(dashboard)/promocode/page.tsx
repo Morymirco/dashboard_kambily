@@ -229,7 +229,7 @@ export default function PromoCodesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {/* {promoCodes.reduce((total, code) => total + (code?.used_count || 0), 0)} */}
+              {promoCodes.reduce((total, code) => total + (code?.usage_count.current || 0), 0)}
             </div>
             <p className="text-xs text-blue-500">Total</p>
           </CardContent>
@@ -303,8 +303,8 @@ export default function PromoCodesPage() {
                         <TableCell>
                           <div className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
-                            {/* {promoCode.used_count}
-                            {promoCode.usage_limit && ` / ${promoCode.usage_limit}`} */}
+                            {promoCode.usage_count.current}
+                            {promoCode.usage_count.max && ` / ${promoCode.usage_count.max}`}
                           </div>
                         </TableCell>
                         <TableCell>
