@@ -19,7 +19,7 @@ export default function PartenaireDetailPage() {
   const { data: partner, isLoading: partnerLoading, error: partnerError } = usePartnerById(partnerId)
   const { data: productsData, isLoading: productsLoading } = usePartnerProducts(partnerId)
   const deletePartner = useDeletePartner()
-
+          
   // Extraire les produits depuis la réponse
   const products = productsData?.results || productsData?.products?.results || (Array.isArray(productsData) ? productsData : [])
   

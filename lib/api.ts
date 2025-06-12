@@ -1,4 +1,4 @@
-import { getAuthToken, refreshAuthToken } from "./supabase-auth"
+// import { getAuthToken, refreshAuthToken } from "./supabase-auth"
 
 // Base API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
 // Fetch with authentication
 export const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
   // Get the auth token
-  let token = getAuthToken()
+  // let token = getAuthToken()
 
   // Prepare headers with authentication
   const headers = {
@@ -24,7 +24,7 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   // If unauthorized, try to refresh the token and retry
   if (response.status === 401) {
     // Refresh the token
-    token = await refreshAuthToken()
+    // token = await refreshAuthToken()
 
     if (token) {
       // Retry the request with the new token

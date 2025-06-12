@@ -12,7 +12,9 @@ export function useLogin() {
       return await UserAuthService.login(data.email, data.password)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      console.log("invalidation des queries")
+      
+      queryClient.invalidateQueries({ queryKey: ['users'] })
     }
   })
 }

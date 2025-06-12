@@ -2,19 +2,25 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, isAuthenticated } = useAuth()
+
+  console.log("auth guard")
+  console.log("user",user)
+  console.log("loading",loading)
+  console.log("isAuthenticated",isAuthenticated())
   const router = useRouter()
 
   useEffect(() => {
     // Si l'utilisateur n'est pas connecté et que le chargement est terminé,
     // rediriger vers la page de connexion
     if (!loading && !user) {
+      console.log("redirection vers la page de connexion")
       router.push("/login")
     }
   }, [user, loading, router])
