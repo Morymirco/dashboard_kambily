@@ -556,7 +556,7 @@ function CategoryCard({
               </span>
             )}
           </div>
-          <span>Slug: {category.slug}</span>
+          <span>Marge: {category.margin_percentage}%</span>
         </div>
       </CardContent>
     </Card>

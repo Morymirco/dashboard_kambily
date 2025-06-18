@@ -6,6 +6,7 @@ export interface Category {
     slug: string
     is_main: boolean
     image: string | null
+    margin_percentage: number
     created_at: string
     updated_at: string
     parent_category: number | null
