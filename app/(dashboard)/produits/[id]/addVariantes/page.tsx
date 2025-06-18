@@ -98,20 +98,55 @@ export default function AddVariantesPage() {
     e.preventDefault()
 
     // Convertir les variantes pour correspondre au format attendu par l'API
-    const formattedVariants = variants.map(variant => ({
-      main_attribut: variant.main_attribut,
-      attributs: variant.attributs,
-      images: variant.images,
-      images_url: variant.images_url,
-      image: variant.image,
-      image_url: variant.image_url,
-      quantities: Object.values(variant.quantities), // Convertir l'objet en tableau
-      regular_price: variant.regular_price,
-      promo_price: variant.promo_price
-    }))
+    const formattedVariants = variants.map(variant => {
+      // Séparer l'attribut principal des attributs secondaires
+      const mainAttributValue = variant.attributs[0]
+      // Ne garder que les attributs secondaires dans le tableau attributs
+      const secondaryAttributes = variant.attributs.slice(1)
+      
+      // S'assurer que nous avons une quantité pour chaque attribut secondaire
+      const quantities = secondaryAttributes.map((_, index) => {
+        return variant.quantities[index] || 0
+      })
 
+      // Trouver l'attribut principal correspondant
+      const mainAttribute = availableAttributes.find(attr => 
+        attr.valeurs.some(val => val.id === mainAttributValue)
+      )
 
-    console.log(formattedVariants)
+      // Vérification de la cohérence des données
+      if (secondaryAttributes.length !== quantities.length) {
+        console.error("Incohérence détectée:", {
+          secondaryAttributes,
+          quantities,
+          variant
+        })
+      }
+
+      return {
+        main_attribut: mainAttribute?.id || variant.main_attribut,
+        attributs: secondaryAttributes, // Ne contient que les attributs secondaires
+        images: variant.images || [],
+        images_url: variant.images_url || [],
+        image: variant.image,
+        image_url: variant.image_url,
+        quantities: quantities,
+        regular_price: variant.regular_price,
+        promo_price: variant.promo_price
+      }
+    })
+
+    // Vérification des données avant envoi
+    const validVariants = formattedVariants.every(variant => {
+      return variant.attributs.length === variant.quantities.length
+    })
+
+    if (!validVariants) {
+      toast.error("Le nombre de quantités doit correspondre exactement au nombre d'attributs secondaires")
+      return
+    }
+
+    console.log("Données envoyées:", formattedVariants)
 
     addVariantes(
       { 
