@@ -22,7 +22,9 @@ interface Variant {
   images_url: any[]
   image: string | null
   image_url: string | null
-  quantities: { [key: number]: number } // Quantité par ID d'attribut
+  quantities: number[] // Quantité par ID d'attribut en tableau
+  regular_price: string
+  promo_price: string
 }
 
 interface AttributeValue {
@@ -95,10 +97,26 @@ export default function AddVariantesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Convertir les variantes pour correspondre au format attendu par l'API
+    const formattedVariants = variants.map(variant => ({
+      main_attribut: variant.main_attribut,
+      attributs: variant.attributs,
+      images: variant.images,
+      images_url: variant.images_url,
+      image: variant.image,
+      image_url: variant.image_url,
+      quantities: Object.values(variant.quantities), // Convertir l'objet en tableau
+      regular_price: variant.regular_price,
+      promo_price: variant.promo_price
+    }))
+
+
+    console.log(formattedVariants)
+
     addVariantes(
       { 
         id, 
-        data: { variantes: variants } 
+        data: { variantes: formattedVariants } 
       },
       {
         onSuccess: () => {
@@ -209,7 +227,9 @@ export default function AddVariantesPage() {
                             ...newVariants[index],
                             main_attribut: parseInt(value),
                             attributs: [],
-                            quantities: {}
+                            quantities: [],
+                            regular_price: "",
+                            promo_price: ""
                           }
                           setVariants(newVariants)
                         }}
@@ -266,6 +286,50 @@ export default function AddVariantesPage() {
                         </Select>
                       </div>
                     )}
+
+                    {/* Prix */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor={`regular-price-${index}`}>
+                          Prix régulier <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id={`regular-price-${index}`}
+                          type="number"
+                          placeholder="0"
+                          value={variant.regular_price || ""}
+                          onChange={(e) => {
+                            const newVariants = [...variants]
+                            newVariants[index] = {
+                              ...newVariants[index],
+                              regular_price: e.target.value
+                            }
+                            setVariants(newVariants)
+                          }}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`promo-price-${index}`}>
+                          Prix promotionnel <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id={`promo-price-${index}`}
+                          type="number"
+                          placeholder="0"
+                          value={variant.promo_price || ""}
+                          onChange={(e) => {
+                            const newVariants = [...variants]
+                            newVariants[index] = {
+                              ...newVariants[index],
+                              promo_price: e.target.value
+                            }
+                            setVariants(newVariants)
+                          }}
+                          required
+                        />
+                      </div>
+                    </div>
 
                     {/* Autres attributs en grille de checkboxes */}
                     {variant.main_attribut > 0 && (
@@ -390,7 +454,9 @@ export default function AddVariantesPage() {
                       images_url: [],
                       image: null,
                       image_url: null,
-                      quantities: {}
+                      quantities: [],
+                      regular_price: "",
+                      promo_price: ""
                     }
                   ])
                 }}
