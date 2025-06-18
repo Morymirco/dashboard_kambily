@@ -23,6 +23,18 @@ export type CreateProductData = {
   sku: string
   regular_price: string
   quantity: number
+  supplier_price: number
+  is_published: boolean
+  product_type: string
+  is_recommended: boolean
+  is_vedette: boolean
+  is_variable: boolean
+  partenaire: number
+  categories: number[]
+  etiquettes: number[]
+  images: File[]
+  short_description: string
+  long_description: string
 }
 
 export type UpdateProductData = {

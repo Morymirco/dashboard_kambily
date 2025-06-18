@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ProductsService } from '@/lib/services/products.service'
 import { useApiErrorHandler } from '@/lib/api-interceptor'
-import type { Product, CreateProductData, UpdateProductData } from '@/lib/types/products'
+import { ProductsService } from '@/lib/services/products.service'
+import type { CreateProductData, UpdateProductData } from '@/lib/types/products'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 export function useProducts(page = 1, search = '') {
   const { handleError } = useApiErrorHandler()
@@ -48,7 +48,7 @@ export function useCreateProduct() {
   const { handleError } = useApiErrorHandler()
   
   return useMutation({
-    mutationFn: async (data: CreateProductData) => {
+    mutationFn: async (data: FormData | CreateProductData) => {
       try {
         return await ProductsService.createProduct(data)
       } catch (error: any) {
@@ -57,7 +57,6 @@ export function useCreateProduct() {
       }
     },
     onSuccess: () => {
-      // Invalider le cache des produits pour refetch
       queryClient.invalidateQueries({ queryKey: ['products'] })
     }
   })

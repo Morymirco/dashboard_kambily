@@ -13,8 +13,12 @@ export const ProductsService = {
     });
     return response.data;
   },
-  createProduct : async (data: CreateProductData) => {
-    const response = await API.post(API_ENDPOINTS.products.base, data);
+  createProduct : async (data: FormData| CreateProductData) => {
+    const response = await API.post(API_ENDPOINTS.products.add, data, {
+      headers: {
+        'Content-Type': data instanceof FormData ? 'multipart/form-data' : 'application/json'
+      }
+    });
     return response.data;
   },
   updateProduct : async (id: string, data: UpdateProductData) => {

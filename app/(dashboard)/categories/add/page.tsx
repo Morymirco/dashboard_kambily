@@ -27,7 +27,8 @@ export default function AddCategoryPage() {
     description: "",
     slug: "",
     is_main: false,
-    parent_category: null as number | null
+    parent_category: null as number | null,
+    margin_percentage: null as number | null
   })
   const [errors, setErrors] = useState<{[key: string]: string}>({})
 
@@ -98,6 +99,11 @@ export default function AddCategoryPage() {
     }
   }
 
+  const handleMarginPercentageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setFormData(prev => ({ ...prev, margin_percentage: value ? parseInt(value) : null }))
+  }
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
@@ -149,6 +155,7 @@ export default function AddCategoryPage() {
         categoryData.append("slug", formData.slug)
         categoryData.append("is_main", formData.is_main.toString())
         categoryData.append("parent_category", formData.parent_category?.toString() || "")
+        categoryData.append("margin_percentage", formData.margin_percentage?.toString() || "")
         if (imageFile) {
           categoryData.append("image", imageFile)
         }
@@ -224,9 +231,18 @@ export default function AddCategoryPage() {
                   required
                 />
                 {errors.slug && <p className="text-xs text-red-500">{errors.slug}</p>}
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mb-4">
                   Le slug est utilisé dans l'URL de la catégorie. Il est généré automatiquement à partir du nom.
                 </p>
+
+                <Label htmlFor="margin_percentage" className="text-base font-medium mt-4"> Marge </Label>
+                <Input
+                  id="margin_percentage"
+                  name="margin_percentage"
+                  value={formData.margin_percentage|| ""}
+                  onChange={handleMarginPercentageChange}
+                  placeholder="Ex: 10"
+                />
               </div>
               
               <div className="space-y-2">

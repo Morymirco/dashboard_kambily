@@ -1,16 +1,16 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Search, Edit, Trash2, Eye } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useProducts, useDeleteProduct } from "@/hooks/api/products"
+import { useDeleteProduct, useProducts } from "@/hooks/api/products"
 import { useDebounce } from "@/hooks/use-debounce"
-import toast from "react-hot-toast"
+import { Edit, Eye, Plus, Search, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
+import toast from "react-hot-toast"
 
 export default function ProduitsPage() {
   const [currentPage, setCurrentPage] = useState(1)
@@ -89,7 +89,7 @@ export default function ProduitsPage() {
             Gérez votre catalogue de produits
           </p>
         </div>
-        <Button>
+        <Button onClick={() => router.push("/produits/ajouter")}>
           <Plus className="mr-2 h-4 w-4" />
           Nouveau Produit
         </Button>
@@ -172,7 +172,7 @@ export default function ProduitsPage() {
                       {product.short_description}
                     </p>
                     <div className="flex items-center space-x-4 mt-2">
-                      <span className="font-medium">{product.regular_price}€</span>
+                      <span className="font-medium">{product.regular_price} GNF</span>
                       <Badge variant={product.etat_stock === "en_stock" ? "default" : "secondary"}>
                         {product.etat_stock === "en_stock" ? "En stock" : "Rupture de stock"}
                       </Badge>

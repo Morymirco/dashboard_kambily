@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from "../constant/api"
 import API from "@/service/api"
+import { API_ENDPOINTS } from "../constant/api"
 import { Category } from "../types/categories"
 
 export const getCategories = async () => {
@@ -18,7 +18,14 @@ export const deleteCategory = async (id: string) => {
 }
 
 export const updateCategory = async (id: string, data: Category) => {
-    const response = await API.put(API_ENDPOINTS.categories.update(id), data)
+    const response = await API.put(API_ENDPOINTS.categories.update(id), data,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        }
+    )
+    
     return response.data
 }
 

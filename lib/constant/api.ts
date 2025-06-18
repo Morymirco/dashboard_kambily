@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
     products :{
         base : `${API_BASE_URL}/products/`,
         detail : (id: string) => `${API_BASE_URL}/products/${id}/`,
+        add : `${API_BASE_URL}/products/viewset/`,
         
     },
     //ORDERS
@@ -62,6 +63,14 @@ export const API_ENDPOINTS = {
         delete : (id: string) => `${API_BASE_URL}/promocode/${id}/`,
         update : (id: string) => `${API_BASE_URL}/promocode/${id}/`,
         add : `${API_BASE_URL}/promocode/`,
+    },
+    //ATTRIBUTES
+    attributes :{
+        base : `${API_BASE_URL}/products/attributes/of/`,
+        detail : (id: string) => `${API_BASE_URL}/products/attributes/of/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/products/attributes/of/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/products/attributes/of/${id}/`,
+        add : `${API_BASE_URL}/products/attributes/of/`,
     },
   
 }

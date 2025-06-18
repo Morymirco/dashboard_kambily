@@ -2,56 +2,42 @@
 
 import type React from "react"
 
-import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
-import axios from "axios"
 import {
   ChevronRight,
   CircleDollarSign,
-  Edit,
   ImageIcon,
   ImagePlus,
-  LayoutGrid,
   Loader2,
   Package,
   Plus,
   Save,
   Tag,
-  Trash2,
+  Trash2
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { toast } from "react-hot-toast"
 
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { STOCK_STATUS } from "@/constants"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { API_BASE_URL } from "@/constants"
-import { getAuthToken, getAuthHeaders } from "@/lib/auth-utils"
+import { useCreateProduct } from "@/hooks/api/products"
+import { getAuthHeaders, getAuthToken } from "@/lib/auth-utils"
+import { CreateProductData } from "@/lib/types/products"
+import dynamic from 'next/dynamic'
+import 'react-quill/dist/quill.snow.css'
 
-// Types pour les variantes
-type VariantAttribute = {
-  name: string
-  values: string[]
-}
-
-type VariantCombination = {
-  id: string
-  attributes: Record<string, string>
-  price: string
-  stock: string
-  sku: string
-}
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
 
 export default function AjouterProduitPage() {
   const router = useRouter()
@@ -59,29 +45,25 @@ export default function AjouterProduitPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [loadingAttributes, setLoadingAttributes] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { mutate: createProduct, isPending } = useCreateProduct()
 
-  const [productType, setProductType] = useState<"simple" | "variable">("simple")
-  const [productData, setProductData] = useState({
+  const [productData, setProductData] = useState<CreateProductData>({
     name: "",
-    slug: "",
-    short_description: "",
-    long_description: "",
-    regular_price: "",
-    promo_price: "",
     sku: "",
-    quantity: "0",
-    etat_stock: "En Stock",
+    regular_price: "",
+    quantity: 0,
+    supplier_price: 0,
+    is_published: true,
     product_type: "simple",
     is_recommended: false,
-    is_published: true,
     is_vedette: false,
-    weight: "1",
-    length: "1",
-    width: "1",
-    height: "1",
-    partenaire: null as number | null,
-    categories: [] as number[],
-    etiquettes: [] as number[],
+    is_variable: false,
+    partenaire: 0,
+    categories: [],
+    etiquettes: [],
+    images: [],
+    short_description: "",
+    long_description: ""
   })
 
   // État pour les images
@@ -93,36 +75,6 @@ export default function AjouterProduitPage() {
   const [availableTags, setAvailableTags] = useState<any[]>([])
   const [availablePartners, setAvailablePartners] = useState<any[]>([])
   const [availableAttributes, setAvailableAttributes] = useState<any[]>([])
-  const [availableColors, setAvailableColors] = useState<any[]>([])
-  const [availableSizes, setAvailableSizes] = useState<any[]>([])
-  const [groupedAttributes, setGroupedAttributes] = useState<Record<string, any[]>>({})
-
-  // État pour les attributs de variante
-  const [variantAttributes, setVariantAttributes] = useState<VariantAttribute[]>([
-    { name: "Couleur", values: ["Rouge", "Bleu", "Noir"] },
-    { name: "Taille", values: ["S", "M", "L", "XL"] },
-  ])
-
-  // État pour les combinaisons de variantes
-  const [variantCombinations, setVariantCombinations] = useState<VariantCombination[]>([])
-
-  // État pour la variante unique (nouveau design)
-  const [variante, setVariante] = useState({
-    attributs: [], // IDs des attributs sélectionnés
-    regular_price: 0,
-    promo_price: 0,
-    quantity: 0,
-    images: [],
-    image: null,
-  })
-
-  // État pour le type de produit
-  const [formData, setFormData] = useState({
-    // ... autres champs
-    product_type: "simple", // ou "variable"
-    is_variable: false,
-    // ... autres champs
-  })
 
   // Fonction pour organiser les catégories de manière hiérarchique
   const organizeCategories = (categories: any[]) => {
@@ -187,23 +139,6 @@ export default function AjouterProduitPage() {
         setAvailablePartners(partenaires)
         setAvailableAttributes(attributs)
 
-        const sizes = attributs.filter((attr: any) => attr.attribut.nom === "size")
-        const colors = attributs.filter((attr: any) => attr.attribut.nom === "color")
-
-        setAvailableSizes(sizes)
-        setAvailableColors(colors)
-
-        const otherAttrs = attributs.filter(
-          (attr: any) => attr.attribut.nom !== "size" && attr.attribut.nom !== "color",
-        )
-        const grouped = otherAttrs.reduce((acc: Record<string, any[]>, attr: any) => {
-          if (!acc[attr.attribut.nom]) {
-            acc[attr.attribut.nom] = []
-          }
-          acc[attr.attribut.nom].push(attr)
-          return acc
-        }, {})
-        setGroupedAttributes(grouped)
         console.log(
           "%c[AjouterProduitPage] Données traitées et stockées avec succès",
           "color: #10b981; font-weight: bold;",
@@ -259,119 +194,9 @@ export default function AjouterProduitPage() {
     setImagePreviewUrls((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // Ajouter un attribut de variante
-  const handleAddAttribute = () => {
-    setVariantAttributes((prev) => [...prev, { name: "", values: [] }])
-  }
-
-  // Mettre à jour un attribut de variante
-  const handleUpdateAttribute = (index: number, field: "name" | "values", value: string | string[]) => {
-    setVariantAttributes((prev) => {
-      const updated = [...prev]
-      if (field === "name") {
-        updated[index].name = value as string
-      } else {
-        updated[index].values = value as string[]
-      }
-      return updated
-    })
-  }
-
-  // Supprimer un attribut de variante
-  const handleRemoveAttribute = (index: number) => {
-    setVariantAttributes((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Gérer les changements de type de produit
-  const handleProductTypeChange = (value: string) => {
-    setProductType(value as "simple" | "variable")
-    setProductData({
-      ...productData,
-      product_type: value,
-    })
-  }
-
-  // Gérer les changements dans la variante
-  const handleVariantChange = (field: string, value: any) => {
-    setVariante((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-  }
-
-  // Gérer les changements d'attributs
-  const handleAttributeChange = (attrId: number) => {
-    setVariante((prev) => ({
-      ...prev,
-      attributs: prev.attributs.includes(attrId)
-        ? prev.attributs.filter((id) => id !== attrId)
-        : [...prev.attributs, attrId],
-    }))
-  }
-
-  // Générer toutes les combinaisons possibles de variantes
-  const generateVariantCombinations = () => {
-    // Filtrer les attributs valides
-    const validAttributes = variantAttributes.filter((attr) => attr.name && attr.values.length > 0)
-
-    if (validAttributes.length === 0) {
-      toast.error("Veuillez ajouter au moins un attribut avec des valeurs")
-      return
-    }
-
-    // Fonction récursive pour générer toutes les combinaisons
-    const generateCombinations = (
-      attributes: VariantAttribute[],
-      currentIndex: number,
-      currentCombination: Record<string, string> = {},
-    ): Record<string, string>[] => {
-      if (currentIndex === attributes.length) {
-        return [currentCombination]
-      }
-
-      const currentAttribute = attributes[currentIndex]
-      const combinations: Record<string, string>[] = []
-
-      currentAttribute.values.forEach((value) => {
-        const newCombination = { ...currentCombination, [currentAttribute.name]: value }
-        combinations.push(...generateCombinations(attributes, currentIndex + 1, newCombination))
-      })
-
-      return combinations
-    }
-
-    // Générer toutes les combinaisons possibles
-    const combinations = generateCombinations(validAttributes, 0)
-
-    // Créer les objets de variante
-    const newVariants: VariantCombination[] = combinations.map((combo, index) => ({
-      id: `variant-${index}`,
-      attributes: combo,
-      price: productData.regular_price,
-      stock: productData.quantity,
-      sku: `${productData.sku || "SKU"}-${Object.values(combo).join("-")}`,
-    }))
-
-    setVariantCombinations(newVariants)
-    toast.success(`${newVariants.length} variantes générées`)
-  }
-
-  // Mettre à jour une combinaison de variante
-  const handleUpdateVariantCombination = (id: string, field: string, value: string) => {
-    setVariantCombinations((prev) =>
-      prev.map((variant) => (variant.id === id ? { ...variant, [field]: value } : variant)),
-    )
-  }
-
-  // Supprimer une combinaison de variante
-  const handleRemoveVariantCombination = (id: string) => {
-    setVariantCombinations((prev) => prev.filter((variant) => variant.id !== id))
-  }
-
   // Soumettre le formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError(null)
 
     console.log("%c[AjouterProduitPage] Soumission du formulaire...", "color: #3b82f6; font-weight: bold;")
@@ -384,7 +209,6 @@ export default function AjouterProduitPage() {
           "color: #f59e0b; font-weight: bold;",
         )
         toast.error("Veuillez remplir tous les champs obligatoires")
-        setIsLoading(false)
         return
       }
 
@@ -393,9 +217,7 @@ export default function AjouterProduitPage() {
 
       // Ajouter les données du produit
       Object.entries(productData).forEach(([key, value]) => {
-        if (key === "product_type") {
-          formData.append(key, productType)
-        } else if (key !== "categories" && key !== "etiquettes") {
+        if (key !== "categories" && key !== "etiquettes" && key !== "images" && value !== null) {
           formData.append(key, value.toString())
         }
       })
@@ -410,26 +232,6 @@ export default function AjouterProduitPage() {
         formData.append("etiquettes", tagId.toString())
       })
 
-      // Si c'est un produit variable, ajouter la variante
-      if (productType === "variable") {
-        formData.append(
-          "variante",
-          JSON.stringify({
-            attributs: variante.attributs,
-            regular_price: variante.regular_price,
-            promo_price: variante.promo_price,
-            quantity: variante.quantity,
-          }),
-        )
-
-        // Ajouter les images de la variante si elles existent
-        if (variante.images && variante.images.length > 0) {
-          variante.images.forEach((image) => {
-            formData.append("images_variante", image)
-          })
-        }
-      }
-
       // Ajouter les images du produit
       images.forEach((file) => {
         formData.append("images", file)
@@ -437,49 +239,23 @@ export default function AjouterProduitPage() {
 
       console.log("%c[AjouterProduitPage] Données du formulaire préparées", "color: #10b981;")
 
-      // Utiliser getAuthHeaders pour l'authentification
-      const headers = getAuthHeaders()
-      // Supprimer Content-Type car FormData le gère automatiquement
-      delete headers['Content-Type']
-
-      console.log("%c[AjouterProduitPage] Envoi de la requête POST pour créer le produit...", "color: #3b82f6;")
-      const response = await fetch(`${API_BASE_URL}/products/viewset/`, {
-        method: "POST",
-        headers: headers,
-        body: formData,
+      createProduct(formData, {
+        onSuccess: (data) => {
+          console.log("%c[AjouterProduitPage] Produit créé avec succès:", "color: #10b981; font-weight: bold;", data)
+          toast.success("Produit ajouté avec succès")
+          router.push("/produits")
+        },
+        onError: (error: any) => {
+          console.error(
+            "%c[AjouterProduitPage] Erreur lors de l'ajout du produit:",
+            "color: #ef4444; font-weight: bold;",
+            error,
+          )
+          setError(error.message || "Une erreur est survenue lors de l'ajout du produit")
+          toast.error("Une erreur est survenue lors de l'ajout du produit")
+        }
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("%c[AjouterProduitPage] Erreur de réponse:", "color: #ef4444;", errorData)
-        throw new Error(errorData.message || `Erreur HTTP: ${response.status}`)
-      }
-
-      const data = await response.json()
-      console.log("%c[AjouterProduitPage] Produit créé avec succès:", "color: #10b981; font-weight: bold;", data)
-
-      // Télécharger les images
-      if (images.length > 0 && data.id) {
-        console.log("%c[AjouterProduitPage] Téléchargement des images...", "color: #3b82f6;")
-        const uploadPromises = images.map((image) => {
-          const imgFormData = new FormData()
-          imgFormData.append("image", image)
-          imgFormData.append("product", data.id.toString())
-
-          return fetch(`${API_BASE_URL}/products/images/`, {
-            method: "POST",
-            headers: headers,
-            body: imgFormData,
-          })
-        })
-
-        await Promise.all(uploadPromises)
-        console.log("%c[AjouterProduitPage] Images téléchargées avec succès", "color: #10b981; font-weight: bold;")
-      }
-
-      toast.success("Produit ajouté avec succès")
-      console.log("%c[AjouterProduitPage] Redirection vers la liste des produits", "color: #10b981; font-weight: bold;")
-      router.push("/produits")
     } catch (error: any) {
       console.error(
         "%c[AjouterProduitPage] Erreur lors de l'ajout du produit:",
@@ -488,8 +264,6 @@ export default function AjouterProduitPage() {
       )
       setError(error.message || "Une erreur est survenue lors de l'ajout du produit")
       toast.error("Une erreur est survenue lors de l'ajout du produit")
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -563,16 +337,16 @@ export default function AjouterProduitPage() {
             <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
             Retour
           </Button>
-          <Button className="bg-teal-600 hover:bg-teal-700" onClick={handleSubmit} disabled={isLoading}>
+          <Button className="bg-teal-600 hover:bg-teal-700" onClick={handleSubmit} disabled={isPending}>
             <Save className="mr-2 h-4 w-4" />
-            {isLoading ? "Enregistrement..." : "Enregistrer"}
+            {isPending ? "Enregistrement..." : "Enregistrer"}
           </Button>
         </div>
       </div>
 
       <div className="mt-6">
         <Tabs defaultValue="general">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="general" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Général</span>
@@ -588,10 +362,6 @@ export default function AjouterProduitPage() {
             <TabsTrigger value="attributes" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
               <span className="hidden sm:inline">Attributs</span>
-            </TabsTrigger>
-            <TabsTrigger value="variants" className="flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4" />
-              <span className="hidden sm:inline">Variantes</span>
             </TabsTrigger>
           </TabsList>
 
@@ -618,49 +388,40 @@ export default function AjouterProduitPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="slug">
-                      Slug <span className="text-red-500">*</span>
+                    <Label htmlFor="sku">
+                      SKU <span className="text-red-500">*</span>
                     </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="slug"
-                        name="slug"
-                        placeholder="nom-du-produit"
-                        value={productData.slug}
-                        onChange={handleChange}
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="shrink-0"
-                        onClick={() =>
-                          setProductData({
-                            ...productData,
-                            slug: productData.name
-                              .toLowerCase()
-                              .replace(/\s+/g, "-")
-                              .replace(/[^\w-]+/g, ""),
-                          })
-                        }
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Input
+                      id="sku"
+                      name="sku"
+                      placeholder="SKU-12345"
+                      value={productData.sku}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="short_description">Description courte</Label>
-                    <Textarea
-                      id="short_description"
-                      name="short_description"
-                      placeholder="Description courte du produit"
-                      rows={2}
+                    <ReactQuill
+                      theme="snow"
                       value={productData.short_description}
-                      onChange={handleChange}
+                      onChange={(content) => {
+                        setProductData({
+                          ...productData,
+                          short_description: content
+                        })
+                      }}
+                      modules={{
+                        toolbar: [
+                          ['bold', 'italic', 'underline'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          ['clean']
+                        ]
+                      }}
+                      className="h-32 mb-12"
                     />
                   </div>
 
@@ -668,35 +429,29 @@ export default function AjouterProduitPage() {
                     <Label htmlFor="long_description">
                       Description complète <span className="text-red-500">*</span>
                     </Label>
-                    <Textarea
-                      id="long_description"
-                      name="long_description"
-                      placeholder="Description détaillée du produit"
-                      rows={5}
+                    <ReactQuill
+                      theme="snow"
                       value={productData.long_description}
-                      onChange={handleChange}
-                      required
+                      onChange={(content) => {
+                        setProductData({
+                          ...productData,
+                          long_description: content
+                        })
+                      }}
+                      modules={{
+                        toolbar: [
+                          [{ 'header': [1, 2, 3, false] }],
+                          ['bold', 'italic', 'underline', 'strike'],
+                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                          [{ 'color': [] }, { 'background': [] }],
+                          [{ 'align': [] }],
+                          ['link', 'image'],
+                          ['clean']
+                        ]
+                      }}
+                      className="h-64 mb-12"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Type de produit</Label>
-                  <RadioGroup
-                    defaultValue="simple"
-                    value={productType}
-                    className="flex space-x-4"
-                    onValueChange={handleProductTypeChange}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="simple" id="simple" />
-                      <Label htmlFor="simple">Produit simple</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="variable" id="variable" />
-                      <Label htmlFor="variable">Produit avec variantes</Label>
-                    </div>
-                  </RadioGroup>
                 </div>
 
                 <div>
@@ -704,11 +459,11 @@ export default function AjouterProduitPage() {
                     Partenaire
                   </Label>
                   <Select
-                    value={productData.partenaire ? productData.partenaire.toString() : ""}
+                    value={productData.partenaire ? productData.partenaire.toString() : "0"}
                     onValueChange={(value) =>
                       setProductData({
                         ...productData,
-                        partenaire: value === "none" ? null : Number.parseInt(value, 10),
+                        partenaire: Number.parseInt(value, 10),
                       })
                     }
                   >
@@ -716,7 +471,7 @@ export default function AjouterProduitPage() {
                       <SelectValue placeholder="Sélectionnez un partenaire" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Aucun partenaire</SelectItem>
+                      <SelectItem value="0">Aucun partenaire</SelectItem>
                       {availablePartners.map((partner) => (
                         <SelectItem key={partner.id} value={partner.id.toString()}>
                           {partner.name}
@@ -845,7 +600,22 @@ export default function AjouterProduitPage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="regular_price">Prix (GNF)</Label>
+                    <Label htmlFor="supplier_price">Prix du fournisseur (GNF)</Label>
+                    <div className="relative">
+                      <CircleDollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        id="supplier_price"
+                        name="supplier_price"
+                        type="number"
+                        placeholder="0"
+                        className="pl-10"
+                        value={productData.supplier_price}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="regular_price">Prix de vente (GNF)</Label>
                     <div className="relative">
                       <CircleDollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                       <Input
@@ -859,36 +629,11 @@ export default function AjouterProduitPage() {
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="promo_price">Prix promotionnel (GNF)</Label>
-                    <div className="relative">
-                      <CircleDollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="promo_price"
-                        name="promo_price"
-                        type="number"
-                        placeholder="0"
-                        className="pl-10"
-                        value={productData.promo_price}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
                 </div>
 
                 <Separator />
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="sku">SKU (Référence)</Label>
-                    <Input
-                      id="sku"
-                      name="sku"
-                      placeholder="SKU-12345"
-                      value={productData.sku}
-                      onChange={handleChange}
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantité en stock</Label>
                     <Input
@@ -900,87 +645,20 @@ export default function AjouterProduitPage() {
                       onChange={handleChange}
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="etat_stock">Statut du stock</Label>
-                  <Select
-                    value={productData.etat_stock}
-                    onValueChange={(value) => setProductData((prev) => ({ ...prev, etat_stock: value }))}
-                  >
-                    <SelectTrigger id="etat_stock">
-                      <SelectValue placeholder="Sélectionner un statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STOCK_STATUS.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="weight">
-                      Poids (kg) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="weight"
-                      name="weight"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={productData.weight}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="length">
-                      Longueur (cm) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="length"
-                      name="length"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={productData.length}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="width">
-                      Largeur (cm) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="width"
-                      name="width"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={productData.width}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="height">
-                      Hauteur (cm) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="height"
-                      name="height"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={productData.height}
-                      onChange={handleChange}
-                      required
-                    />
+                    <Label htmlFor="product_type">Type de produit</Label>
+                    <Select
+                      value={productData.product_type}
+                      onValueChange={(value) => setProductData({ ...productData, product_type: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simple">Simple</SelectItem>
+                        <SelectItem value="variable">Variable</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardContent>
@@ -1099,196 +777,6 @@ export default function AjouterProduitPage() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Onglet Variantes */}
-          {productType === "variable" && (
-            <TabsContent value="variants" className="mt-6 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuration de la variante</CardTitle>
-                  <CardDescription>Définissez les attributs et les détails de la variante</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Sélecteur de type de produit */}
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="is_variable"
-                      checked={productData.is_variable}
-                      onCheckedChange={(checked) => {
-                        setProductData(prev => ({
-                          ...prev,
-                          is_variable: checked,
-                          product_type: checked ? "variable" : "simple"
-                        }))
-                      }}
-                    />
-                    <Label htmlFor="is_variable">Produit variable</Label>
-                  </div>
-
-                  {productData.is_variable && (
-                    <div className="grid grid-cols-1 gap-6">
-                      {/* Sélection des attributs */}
-                      <div className="space-y-4">
-                        <Label className="text-base">Attributs de la variante</Label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {/* Couleurs */}
-                          <div className="space-y-4">
-                            <Label>Couleurs</Label>
-                            <ScrollArea className="h-32 rounded-md border p-4">
-                              {availableColors.map((color) => (
-                                <div key={color.id} className="flex items-center space-x-2 mb-2">
-                                  <Checkbox
-                                    checked={variante.attributs.includes(color.id)}
-                                    onCheckedChange={() => handleAttributeChange(color.id)}
-                                  />
-                                  <Label>{color.valeur}</Label>
-                                </div>
-                              ))}
-                            </ScrollArea>
-                          </div>
-
-                          {/* Tailles */}
-                          <div className="space-y-4">
-                            <Label>Tailles</Label>
-                            <ScrollArea className="h-32 rounded-md border p-4">
-                              {availableSizes.map((size) => (
-                                <div key={size.id} className="flex items-center space-x-2">
-                                  <Checkbox
-                                    checked={variante.attributs.includes(size.id)}
-                                    onCheckedChange={() => handleAttributeChange(size.id)}
-                                  />
-                                  <Label>{size.valeur}</Label>
-                                </div>
-                              ))}
-                            </ScrollArea>
-                          </div>
-
-                          {/* Autres attributs groupés */}
-                          {Object.entries(groupedAttributes).map(([groupName, attributes]) => (
-                            <div key={groupName} className="space-y-4">
-                              <Label>{groupName}</Label>
-                              <ScrollArea className="h-32 rounded-md border p-4">
-                                {attributes.map((attr) => (
-                                  <div key={attr.id} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      checked={variante.attributs.includes(attr.id)}
-                                      onCheckedChange={() => handleAttributeChange(attr.id)}
-                                    />
-                                    <Label>{attr.valeur}</Label>
-                                  </div>
-                                ))}
-                              </ScrollArea>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Affichage des attributs sélectionnés */}
-                        <div className="mt-4">
-                          <Label className="text-sm text-gray-500">Attributs sélectionnés :</Label>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {variante.attributs.map((attrId) => {
-                              const attr = [
-                                ...availableColors,
-                                ...availableSizes,
-                                ...Object.values(groupedAttributes).flat()
-                              ].find(a => a.id === attrId);
-                              
-                              return attr ? (
-                                <Badge key={attrId} variant="secondary" className="gap-1">
-                                  {attr.valeur}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4 p-0 hover:bg-transparent"
-                                    onClick={() => handleAttributeChange(attrId)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Prix et quantité */}
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="variant-regular-price">Prix régulier</Label>
-                          <Input
-                            id="variant-regular-price"
-                            type="number"
-                            value={variante.regular_price}
-                            onChange={(e) => handleVariantChange('regular_price', Number(e.target.value))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="variant-promo-price">Prix promotionnel</Label>
-                          <Input
-                            id="variant-promo-price"
-                            type="number"
-                            value={variante.promo_price}
-                            onChange={(e) => handleVariantChange('promo_price', Number(e.target.value))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="variant-quantity">Quantité</Label>
-                          <Input
-                            id="variant-quantity"
-                            type="number"
-                            value={variante.quantity}
-                            onChange={(e) => handleVariantChange('quantity', Number(e.target.value))}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Images de la variante */}
-                      <div className="space-y-4">
-                        <Label>Images de la variante</Label>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              handleVariantChange('images', files);
-                            }}
-                          />
-                        </div>
-                        
-                        {/* Aperçu des images */}
-                        {variante.images && variante.images.length > 0 && (
-                          <div className="grid grid-cols-4 gap-4 mt-4">
-                            {Array.from(variante.images).map((image, index) => (
-                              <div key={index} className="relative group">
-                                <img
-                                  src={URL.createObjectURL(image)}
-                                  alt={`Aperçu ${index + 1}`}
-                                  className="w-full h-24 object-cover rounded-md"
-                                />
-                                <Button
-                                  variant="destructive"
-                                  size="icon"
-                                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => {
-                                    const newImages = Array.from(variante.images).filter((_, i) => i !== index);
-                                    handleVariantChange('images', newImages);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
         </Tabs>
       </div>
 
@@ -1300,4 +788,3 @@ export default function AjouterProduitPage() {
     </div>
   )
 }
-
