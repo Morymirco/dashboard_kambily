@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string
   name: string
@@ -11,6 +10,17 @@ export interface Product {
   created_at: string
   short_description: string
   images: { image: string }[]
+  categories: Array<{
+    id: number
+    name: string
+    description?: string
+    slug: string
+    is_main: boolean
+    image?: string | null
+    created_at: string
+    updated_at: string
+    parent_category: number | null
+  }>
 }
 
 export type ProductsResponse = {

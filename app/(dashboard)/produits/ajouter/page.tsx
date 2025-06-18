@@ -712,17 +712,24 @@ export default function AjouterProduitPage() {
 
                       <div className="flex flex-wrap gap-2 mt-2">
                         {productData.categories.map((categoryId) => {
-                          const findCategory = (categories: any[], id: number) => {
+                          interface Category {
+                            id: number;
+                            name: string;
+                            children?: Category[];
+                          }
+
+                          const findCategory = (categories: Category[], id: number): Category | null => {
                             for (const cat of categories) {
-                              if (cat.id === id) return cat
+                              if (cat.id === id) return cat;
                               if (cat.children) {
-                                const found = findCategory(cat.children, id)
-                                if (found) return found
+                                const found = findCategory(cat.children, id);
+                                if (found) return found;
                               }
                             }
-                            return null
-                          }
-                          const category = findCategory(availableCategories, categoryId)
+                            return null;
+                          };
+
+                          const category = findCategory(availableCategories, categoryId);
                           return category ? (
                             <Badge key={categoryId} variant="secondary" className="gap-1">
                               {category.name}
