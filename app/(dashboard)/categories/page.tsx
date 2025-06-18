@@ -41,7 +41,8 @@ export default function CategoriesPage() {
     description: '',
     slug: '',
     is_main: false,
-    parent_category: null as number | null
+    parent_category: null as number | null,
+    margin_percentage: 0
   })
   
   const { data: categories, isLoading } = useCategories()
@@ -89,7 +90,8 @@ export default function CategoriesPage() {
       description: category.description || '',
       slug: category.slug,
       is_main: category.is_main,
-      parent_category: category.parent_category
+      parent_category: category.parent_category,
+      margin_percentage: category.margin_percentage 
     })
     // Réinitialiser l'image sélectionnée et l'aperçu
     setSelectedImage(null)
@@ -143,23 +145,33 @@ export default function CategoriesPage() {
     
     try {
       // Créer l'objet de données pour la mise à jour
-      const updateData = {
-        ...categoryToEdit,
-        name: editFormData.name,
-        description: editFormData.description,
-        slug: editFormData.slug,
-        is_main: editFormData.is_main,
-        parent_category: editFormData.parent_category,
-        // Note: L'image doit être gérée séparément car le hook actuel n'accepte que des données Category
-        image: selectedImage ? URL.createObjectURL(selectedImage) : categoryToEdit.image
-      }
+      // const updateData = {
+      //   ...categoryToEdit,
+      //   name: editFormData.name,
+      //   description: editFormData.description,
+      //   slug: editFormData.slug,
+      //   is_main: editFormData.is_main,
+      //   parent_category: editFormData.parent_category,
+      //   // Note: L'image doit être gérée séparément car le hook actuel n'accepte que des données Category
+      //   image: selectedImage ? URL.createObjectURL(selectedImage) : categoryToEdit.image,
+      //   margin_percentage: editFormData.margin_percentage
+      // }
+
+      const formData = new FormData()
+      formData.append("name", editFormData.name)
+      formData.append("description", editFormData.description)
+      formData.append("slug", editFormData.slug)
+      formData.append("is_main", editFormData.is_main.toString())
+      formData.append("parent_category", editFormData.parent_category?.toString() || "")
+      formData.append("margin_percentage", editFormData.margin_percentage.toString())
+      formData.append("image", selectedImage )
       
-      await updateCategory.mutateAsync(updateData)
+      await updateCategory.mutateAsync(formData as unknown as Category)
       
       // Invalider et refetch les données des catégories
       queryClient.invalidateQueries({ queryKey: ['categories'] })
       
-      toast.success(`La catégorie "${updateData.name}" a été mise à jour`)
+      toast.success(`La catégorie "${editFormData.name}" a été mise à jour`)
       setIsEditDialogOpen(false)
       setCategoryToEdit(null)
     } catch (error) {
@@ -360,6 +372,17 @@ export default function CategoriesPage() {
                 />
               </div>
               
+              <div className="grid gap-2">
+                <Label htmlFor="margin_percentage"> Marge </Label>
+                <Input
+                  id="margin_percentage"
+                  name="margin_percentage"
+                  value={editFormData.margin_percentage}
+                  onChange={handleEditFormChange}
+                  placeholder="Ex: 10"
+                />
+              </div>
+              
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -556,7 +579,7 @@ function CategoryCard({
               </span>
             )}
           </div>
-          <span>Slug: {category.slug}</span>
+          <span>Marge: {category.margin_percentage}%</span>
         </div>
       </CardContent>
     </Card>

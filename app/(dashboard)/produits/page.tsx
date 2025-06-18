@@ -1,24 +1,31 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, Search, Edit, Trash2, Eye } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ProductFilters, type ProductFilters as ProductFiltersType } from "@/app/components/products/product-filters"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useProducts, useDeleteProduct } from "@/hooks/api/products"
+import { useDeleteProduct, useProducts } from "@/hooks/api/products"
 import { useDebounce } from "@/hooks/use-debounce"
-import toast from "react-hot-toast"
+import { Edit, Eye, Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import toast from "react-hot-toast"
 
 export default function ProduitsPage() {
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [filters, setFilters] = useState<ProductFiltersType>({
+    search: "",
+    priceRange: [0, 1000000],
+    stockStatus: "all",
+    category: "all",
+    sortBy: "newest"
+  })
+  
   const router = useRouter()
   
   // Debounce la recherche pour éviter trop de requêtes
-  const debouncedSearch = useDebounce(searchTerm, 500)
+  const debouncedSearch = useDebounce(filters.search, 500)
   
   // Utiliser le hook useProducts
   const { 
@@ -30,9 +37,109 @@ export default function ProduitsPage() {
   
   const deleteProductMutation = useDeleteProduct()
 
+  // Filtrer et trier les produits côté frontend
+  const filteredProducts = useMemo(() => {
+    if (!productsData?.results) return []
+
+    let filtered = [...productsData.results]
+
+    // Filtre par recherche
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase()
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(searchLower) ||
+        product.short_description?.toLowerCase().includes(searchLower) ||
+        product.sku?.toLowerCase().includes(searchLower)
+      )
+    }
+
+    // Filtre par plage de prix
+    filtered = filtered.filter(product => {
+      const price = Number(product.regular_price)
+      return price >= filters.priceRange[0] && price <= filters.priceRange[1]
+    })
+
+    // Filtre par statut de stock
+    if (filters.stockStatus !== "all") {
+      filtered = filtered.filter(product => {
+        switch (filters.stockStatus) {
+          case "en_stock":
+            return product.stock_status === true
+          case "rupture":
+            return product.stock_status === false
+          case "faible":
+            return product.quantity < 10 && product.quantity > 0
+          default:
+            return true
+        }
+      })
+    }
+
+    // Filtre par catégorie
+    if (filters.category !== "all") {
+      filtered = filtered.filter(product => {
+        // Vérifier si le produit a des catégories
+        if (!product.categories || !Array.isArray(product.categories)) {
+          return false
+        }
+        // Vérifier si l'une des catégories correspond à la catégorie sélectionnée
+        return product.categories.some(cat => cat.id.toString() === filters.category)
+      })
+    }
+
+    // Tri des produits
+    switch (filters.sortBy) {
+      case "newest":
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        break
+      case "oldest":
+        filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        break
+      case "price_asc":
+        filtered.sort((a, b) => Number(a.regular_price) - Number(b.regular_price))
+        break
+      case "price_desc":
+        filtered.sort((a, b) => Number(b.regular_price) - Number(a.regular_price))
+        break
+      case "name_asc":
+        filtered.sort((a, b) => a.name.localeCompare(b.name))
+        break
+      case "name_desc":
+        filtered.sort((a, b) => b.name.localeCompare(a.name))
+        break
+      case "sales":
+        filtered.sort((a, b) => b.nombre_ventes - a.nombre_ventes)
+        break
+    }
+
+    return filtered
+  }, [productsData?.results, filters])
+
+  // Calculer le nombre total de pages
+  const totalPages = Math.ceil((productsData?.count || 0) / 10)
+  const startIndex = (currentPage - 1) * 10
+  const endIndex = startIndex + 10
+  const currentProducts = filteredProducts.slice(startIndex, endIndex)
+
   const handleSearch = (value: string) => {
-    setSearchTerm(value)
-    setCurrentPage(1) // Reset à la première page lors d'une recherche
+    setFilters(prev => ({ ...prev, search: value }))
+    setCurrentPage(1)
+  }
+
+  const handleFilterChange = (newFilters: ProductFiltersType) => {
+    setFilters(newFilters)
+    setCurrentPage(1)
+  }
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: "",
+      priceRange: [0, 1000000],
+      stockStatus: "all",
+      category: "all",
+      sortBy: "newest"
+    })
+    setCurrentPage(1)
   }
 
   const handleDeleteProduct = async (id: string) => {
@@ -51,12 +158,10 @@ export default function ProduitsPage() {
   }
 
   const handleViewProduct = (id: string) => {
-    console.log("View product", id)
     router.push(`/produits/${id}`)
   }
 
   const handleEditProduct = (id: string) => {
-    console.log("Edit product", id)
     router.push(`/produits/${id}/edit`)
   }
 
@@ -89,26 +194,18 @@ export default function ProduitsPage() {
             Gérez votre catalogue de produits
           </p>
         </div>
-        <Button>
+        <Button onClick={() => router.push("/produits/ajouter")}>
           <Plus className="mr-2 h-4 w-4" />
           Nouveau Produit
         </Button>
       </div>
 
-      {/* Barre de recherche */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Rechercher des produits..."
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filtres de produits */}
+      <ProductFilters
+        onSearch={handleSearch}
+        onFilterChange={handleFilterChange}
+        onReset={handleResetFilters}
+      />
 
       {/* Liste des produits */}
       <Card>
@@ -142,15 +239,15 @@ export default function ProduitsPage() {
                 </div>
               ))}
             </div>
-          ) : productsData?.results?.length === 0 ? (
+          ) : currentProducts.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                {searchTerm ? "Aucun produit trouvé pour cette recherche" : "Aucun produit disponible"}
+                {filters.search ? "Aucun produit trouvé pour cette recherche" : "Aucun produit disponible"}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {productsData?.results?.map((product) => (
+              {currentProducts.map((product) => (
                 <div key={product.id} className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                   {/* Image du produit */}
                   <div className="h-16 w-16 bg-muted rounded flex items-center justify-center">
@@ -172,15 +269,21 @@ export default function ProduitsPage() {
                       {product.short_description}
                     </p>
                     <div className="flex items-center space-x-4 mt-2">
-                      <span className="font-medium">{product.regular_price}€</span>
-                      <Badge variant={product.etat_stock === "en_stock" ? "default" : "secondary"}>
-                        {product.etat_stock === "en_stock" ? "En stock" : "Rupture de stock"}
-                      </Badge>
-                      {product.quantity !== undefined && (
-                        <span className="text-sm text-muted-foreground">
-                          Stock: {product.quantity}
+                      <span className="font-medium">{product.regular_price} GNF</span>
+                      {product.promo_price && (
+                        <span className="text-sm text-red-500 line-through">
+                          {product.promo_price} GNF
                         </span>
                       )}
+                      <Badge variant={product.stock_status ? "default" : "secondary"}>
+                        {product.stock_status ? "En stock" : "Rupture de stock"}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        Stock: {product.quantity}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        Ventes: {product.nombre_ventes}
+                      </span>
                     </div>
                   </div>
                   
@@ -206,26 +309,29 @@ export default function ProduitsPage() {
             </div>
           )}
           
-          {/* Pagination */}
+          {/* Pagination améliorée */}
           {productsData && productsData.count > 0 && (
             <div className="flex justify-between items-center mt-6 pt-4 border-t">
               <p className="text-sm text-muted-foreground">
-                Page {currentPage} sur {Math.ceil(productsData.count / 10)}
+                Affichage de {startIndex + 1} à {Math.min(endIndex, productsData.count)} sur {productsData.count} produits
               </p>
               <div className="flex space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={!productsData.previous || isLoading}
+                  disabled={currentPage === 1 || isLoading}
                 >
                   Précédent
                 </Button>
+                <span className="px-4 py-2 text-sm">
+                  Page {currentPage} sur {totalPages}
+                </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!productsData.next || isLoading}
+                  disabled={currentPage >= totalPages || isLoading}
                 >
                   Suivant
                 </Button>

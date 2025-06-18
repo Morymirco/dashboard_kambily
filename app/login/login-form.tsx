@@ -13,33 +13,41 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useLogin } from "@/hooks/api/userAuth"
-import { setCookieWithExpiry } from "@/helpers/cookies"
+import { getCookie, setCookieWithExpiry } from "@/helpers/cookies"
 import { useRouter } from "next/navigation"
-
+import { useQueryClient } from "@tanstack/react-query"
 export default function LoginForm() {
   const [email, setEmail] = useState("admin@kambily.com")
   const [password, setPassword] = useState("admin123")
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const router = useRouter()
-  const { mutate: loginUser, isPending ,} = useLogin()
+  const queryClient = useQueryClient()
+  // const { mutate: loginUser, isPending ,} = useLogin()
+  const { login, loading } = useAuth()
 
-  
+  console.log("login form")
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-  if(isPending) return
-loginUser({ email, password },
+  if(loading) return
+login(email, password ,rememberMe),
   {
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       console.log(data)
 
       setCookieWithExpiry("accessToken", data.access_token);
       setCookieWithExpiry("refreshToken", data.refresh_token);
-   
-      router.push("/");
+      setCookieWithExpiry("user", JSON.stringify(data.user));
+
+    
+
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+   // la redirection
+console.log("redirection")
+      // router.push("/");
     }
   }
-)
+
    
   }
 
@@ -63,7 +71,7 @@ loginUser({ email, password },
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isPending}
+                disabled={loading}
               />
             </div>
           </div>
@@ -83,13 +91,13 @@ loginUser({ email, password },
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isPending}
+                disabled={loading}
               />
               <button
                 type="button"
                 className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowPassword(!showPassword)}
-                  disabled={isPending}
+                  disabled={loading}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
@@ -100,7 +108,7 @@ loginUser({ email, password },
               id="remember"
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-              disabled={isPending}
+              disabled={loading}
             />
             <Label
               htmlFor="remember"
@@ -111,8 +119,8 @@ loginUser({ email, password },
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white" disabled={isPending}>
-            {isPending ? "Connexion en cours..." : "Se connecter"}
+          <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white" disabled={loading}>
+            {loading ? "Connexion en cours..." : "Se connecter"}
           </Button>
         </CardFooter>
       </form>

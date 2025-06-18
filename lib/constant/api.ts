@@ -19,11 +19,16 @@ export const API_ENDPOINTS = {
         
         partnerProducts : (id: string) => `${API_BASE_URL}/partenaire/products/${id}/`,
         allProducts : `${API_BASE_URL}/partenaire/products/`,
+        //partenaire off
+        of : `${API_BASE_URL}/partenaire/of/`,
+
+
     },
     //PRODUCTS
     products :{
         base : `${API_BASE_URL}/products/`,
         detail : (id: string) => `${API_BASE_URL}/products/${id}/`,
+        add : `${API_BASE_URL}/products/viewset/`,
         
     },
     //ORDERS
@@ -42,6 +47,8 @@ export const API_ENDPOINTS = {
         update : (id: string) => `${API_BASE_URL}/categories/viewset/${id}/`,
         parent : `${API_BASE_URL}/categories/viewset/parent/category/`,
         add : `${API_BASE_URL}/categories/viewset/`,
+        //categories off
+        of : `${API_BASE_URL}/categories/viewset/of/`,
     },
     //REVIEWS
     reviews :{
@@ -54,6 +61,33 @@ export const API_ENDPOINTS = {
         delete : (id: string) => `${API_BASE_URL}/accounts/admin/${id}/`,
         update : (id: string) => `${API_BASE_URL}/accounts/admin/${id}/`,
         add : `${API_BASE_URL}/users/`,
+    },
+    //PROMOCODES
+    promocodes :{
+        base : `${API_BASE_URL}/promocode/`,
+        detail : (id: string) => `${API_BASE_URL}/promocode/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/promocode/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/promocode/${id}/`,
+        add : `${API_BASE_URL}/promocode/`,
+    },
+    //ATTRIBUTES
+    attributes :{
+        base : `${API_BASE_URL}/products/attributes/of/`,
+        detail : (id: string) => `${API_BASE_URL}/products/attributes/of/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/products/attributes/of/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/products/attributes/of/${id}/`,
+        add : `${API_BASE_URL}/products/attributes/of/`,
+    },
+
+    // TAGS
+    tags :{
+        base : `${API_BASE_URL}/tags/`,
+        detail : (id: string) => `${API_BASE_URL}/tags/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/tags/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/tags/${id}/`,
+        add : `${API_BASE_URL}/tags/`,
+        //tags off
+        of : `${API_BASE_URL}/tags/viewset/of/`,
     },
   
 }

@@ -29,6 +29,17 @@ export type Product = {
   reviews: any[]
   created_at: string
   updated_at: string
+  categories: Array<{
+    id: number
+    name: string
+    description?: string
+    slug: string
+    is_main: boolean
+    image?: string | null
+    created_at: string
+    updated_at: string
+    parent_category: number | null
+  }>
 }
 
 export type ProductsResponse = {
