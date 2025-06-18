@@ -121,13 +121,8 @@ export default function AddVariantesPage() {
         })
       }
 
-      // Trouver l'attribut principal correspondant
-      const mainAttribute = availableAttributes.find(attr => 
-        attr.valeurs.some(val => val.id === mainAttributValue)
-      )
-
       return {
-        main_attribut: mainAttribute?.id || variant.main_attribut,
+        main_attribut: mainAttributValue,
         attributs: secondaryAttributes,
         images: variant.images || [],
         images_url: variant.images_url || [],
