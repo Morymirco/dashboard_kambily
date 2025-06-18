@@ -35,3 +35,7 @@ export const bulkDeletePartners = async (id: string) => {
     const response = await API.delete(API_ENDPOINTS.parteners.delete(id))
     return response.data
 }
+export const getPartnersOff = async () => {
+    const response = await API.get(API_ENDPOINTS.parteners.of)
+    return response.data
+}

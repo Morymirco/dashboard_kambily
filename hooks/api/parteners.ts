@@ -1,4 +1,4 @@
-import { bulkDeletePartners, deletePartner, fetchAllPartnerProducts, fetchPartnerById, fetchPartnerProducts, fetchPartners } from "@/lib/services/parteners"
+import { bulkDeletePartners, deletePartner, fetchAllPartnerProducts, fetchPartnerById, fetchPartnerProducts, fetchPartners, getPartnersOff } from "@/lib/services/parteners"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 export const usePartners = (page = 1, search = "") => {
@@ -55,5 +55,11 @@ export const useBulkDeletePartners = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['partners'] })
         }
+    })
+}
+export const usePartnersOff = () => {
+    return useQuery({
+        queryKey: ['partners-off'],
+        queryFn: getPartnersOff
     })
 }

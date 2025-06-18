@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { addCategory, deleteCategory, getCategories, getCategory, getParentCategories, updateCategory } from "@/lib/services/categories.service"
+import { addCategory, deleteCategory, getCategories, getCategoriesOff, getCategory, getParentCategories, updateCategory } from "@/lib/services/categories.service"
 import { Category } from "@/lib/types/categories"
 import { toast } from "sonner"
 
@@ -43,5 +43,11 @@ export const useParentCategories = () => {
     return useQuery({
         queryKey: ['parent-categories'],
         queryFn: getParentCategories
+    })
+}
+export const useCategoriesOff = () => {
+    return useQuery({
+        queryKey: ['categories-off'],
+        queryFn: getCategoriesOff
     })
 }

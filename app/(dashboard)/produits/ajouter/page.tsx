@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "react-hot-toast"
 
+import { Editor } from "@/app/components/editor"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,13 +32,12 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { API_BASE_URL } from "@/constants"
+import { useCategoriesOff } from "@/hooks/api/categories"
+import { usePartnersOff } from "@/hooks/api/parteners"
 import { useCreateProduct } from "@/hooks/api/products"
+import { useTags } from "@/hooks/api/tags"
 import { getAuthHeaders, getAuthToken } from "@/lib/auth-utils"
 import { CreateProductData } from "@/lib/types/products"
-import dynamic from 'next/dynamic'
-import 'react-quill/dist/quill.snow.css'
-
-const ReactQuill = dynamic(() => import('react-quill'), { ssr: false })
 
 export default function AjouterProduitPage() {
   const router = useRouter()
@@ -46,6 +46,11 @@ export default function AjouterProduitPage() {
   const [loadingAttributes, setLoadingAttributes] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { mutate: createProduct, isPending } = useCreateProduct()
+
+  // Utilisation des hooks pour récupérer les données
+  const { data: categoriesData, isLoading: loadingCategories } = useCategoriesOff()
+  const { data: partnersData, isLoading: loadingPartners } = usePartnersOff()
+  const { data: tagsData, isLoading: loadingTags } = useTags()
 
   const [productData, setProductData] = useState<CreateProductData>({
     name: "",
@@ -76,10 +81,30 @@ export default function AjouterProduitPage() {
   const [availablePartners, setAvailablePartners] = useState<any[]>([])
   const [availableAttributes, setAvailableAttributes] = useState<any[]>([])
 
+  // Mettre à jour les états quand les données sont chargées
+  useEffect(() => {
+    if (categoriesData) {
+      const organizedCategories = organizeCategories(categoriesData)
+      setAvailableCategories(organizedCategories)
+    }
+  }, [categoriesData])
+
+  useEffect(() => {
+    if (tagsData) {
+      setAvailableTags(tagsData)
+    }
+  }, [tagsData])
+
+  useEffect(() => {
+    if (partnersData) {
+      setAvailablePartners(partnersData)
+    }
+  }, [partnersData])
+
   // Fonction pour organiser les catégories de manière hiérarchique
   const organizeCategories = (categories: any[]) => {
     const categoryMap = new Map()
-    const rootCategories = []
+    const rootCategories: any[] = []
 
     // Créer un Map de toutes les catégories
     categories.forEach((category) => {
@@ -405,23 +430,18 @@ export default function AjouterProduitPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="short_description">Description courte</Label>
-                    <ReactQuill
-                      theme="snow"
+                    <Editor
                       value={productData.short_description}
-                      onChange={(content) => {
+                      onChange={(content: string) => {
                         setProductData({
                           ...productData,
                           short_description: content
                         })
                       }}
-                      modules={{
-                        toolbar: [
-                          ['bold', 'italic', 'underline'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          ['clean']
-                        ]
-                      }}
-                      className="h-32 mb-12"
+                      height={150}
+                      toolbar={[
+                        'bold italic underline | alignleft aligncenter alignright | bullist numlist | removeformat'
+                      ]}
                     />
                   </div>
 
@@ -429,27 +449,18 @@ export default function AjouterProduitPage() {
                     <Label htmlFor="long_description">
                       Description complète <span className="text-red-500">*</span>
                     </Label>
-                    <ReactQuill
-                      theme="snow"
+                    <Editor
                       value={productData.long_description}
-                      onChange={(content) => {
+                      onChange={(content: string) => {
                         setProductData({
                           ...productData,
                           long_description: content
                         })
                       }}
-                      modules={{
-                        toolbar: [
-                          [{ 'header': [1, 2, 3, false] }],
-                          ['bold', 'italic', 'underline', 'strike'],
-                          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                          [{ 'color': [] }, { 'background': [] }],
-                          [{ 'align': [] }],
-                          ['link', 'image'],
-                          ['clean']
-                        ]
-                      }}
-                      className="h-64 mb-12"
+                      height={400}
+                      toolbar={[
+                        'undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | removeformat'
+                      ]}
                     />
                   </div>
                 </div>
@@ -673,10 +684,10 @@ export default function AjouterProduitPage() {
                 <CardDescription>Classez votre produit pour faciliter sa découverte</CardDescription>
               </CardHeader>
               <CardContent>
-                {loadingAttributes ? (
+                {loadingCategories || loadingPartners || loadingTags ? (
                   <div className="flex items-center justify-center p-6">
                     <Loader2 className="w-6 h-6 animate-spin" />
-                    <span className="ml-2">Chargement des attributs...</span>
+                    <span className="ml-2">Chargement des données...</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

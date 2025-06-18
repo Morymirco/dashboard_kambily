@@ -43,3 +43,8 @@ export const getParentCategories = async () => {
     const response = await API.get(API_ENDPOINTS.categories.parent)
     return response.data
 }
+
+export const getCategoriesOff = async () => {
+    const response = await API.get(API_ENDPOINTS.categories.of)
+    return response.data
+}
