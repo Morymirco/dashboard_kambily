@@ -104,28 +104,31 @@ export default function AddVariantesPage() {
       // Ne garder que les attributs secondaires dans le tableau attributs
       const secondaryAttributes = variant.attributs.slice(1)
       
-      // S'assurer que nous avons une quantité pour chaque attribut secondaire
-      const quantities = secondaryAttributes.map((_, index) => {
-        return variant.quantities[index] || 0
+      // S'assurer que nous avons une quantité supérieure à 0 pour chaque attribut secondaire
+      const quantities = secondaryAttributes.map((attrId) => {
+        // Convertir explicitement en nombre et s'assurer que c'est supérieur à 0
+        const quantity = Number(variant.quantities[attrId]) || 0
+        return quantity
       })
+
+      // Vérification des quantités
+      const hasInvalidQuantities = quantities.some(q => q <= 0)
+      if (hasInvalidQuantities) {
+        console.error("Quantités invalides détectées:", {
+          secondaryAttributes,
+          quantities,
+          rawQuantities: variant.quantities
+        })
+      }
 
       // Trouver l'attribut principal correspondant
       const mainAttribute = availableAttributes.find(attr => 
         attr.valeurs.some(val => val.id === mainAttributValue)
       )
 
-      // Vérification de la cohérence des données
-      if (secondaryAttributes.length !== quantities.length) {
-        console.error("Incohérence détectée:", {
-          secondaryAttributes,
-          quantities,
-          variant
-        })
-      }
-
       return {
         main_attribut: mainAttribute?.id || variant.main_attribut,
-        attributs: secondaryAttributes, // Ne contient que les attributs secondaires
+        attributs: secondaryAttributes,
         images: variant.images || [],
         images_url: variant.images_url || [],
         image: variant.image,
@@ -138,11 +141,23 @@ export default function AddVariantesPage() {
 
     // Vérification des données avant envoi
     const validVariants = formattedVariants.every(variant => {
-      return variant.attributs.length === variant.quantities.length
+      // Vérifier que chaque variante a le même nombre d'attributs et de quantités
+      const hasMatchingLength = variant.attributs.length === variant.quantities.length
+      // Vérifier que toutes les quantités sont supérieures à 0
+      const hasValidQuantities = variant.quantities.every(q => q > 0)
+      
+      if (!hasValidQuantities) {
+        console.error("Validation échouée:", {
+          variant,
+          quantities: variant.quantities
+        })
+      }
+      
+      return hasMatchingLength && hasValidQuantities
     })
 
     if (!validVariants) {
-      toast.error("Le nombre de quantités doit correspondre exactement au nombre d'attributs secondaires")
+      toast.error("Veuillez définir une quantité supérieure à 0 pour chaque attribut secondaire")
       return
     }
 
@@ -464,6 +479,8 @@ export default function AddVariantesPage() {
                                     }
                                     setVariants(newVariants)
                                   }}
+                                  min="1"
+                                  required
                                 />
                               </div>
                             )
