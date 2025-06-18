@@ -99,3 +99,39 @@ export function useDeleteProduct() {
     }
   })
 }
+
+//detail d'un produit
+export function useProductDetail(id: string) {
+  const { handleError } = useApiErrorHandler()
+  
+  return useQuery({
+    queryKey: ['product-detail', id],
+    queryFn: async () => {
+      try {
+        return await ProductsService.getProduct(id)
+      } catch (error: any) {    
+        handleError(error, error.response)  
+        throw error
+      }
+    }
+  })
+}
+
+export function useAddVariantes() {
+  const queryClient = useQueryClient()
+  const { handleError } = useApiErrorHandler()
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: any }) => {
+      try {
+        return await ProductsService.addVariantes(id, data)
+      } catch (error: any) {
+        handleError(error, error.response)
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-detail'] })
+    }
+  })
+}

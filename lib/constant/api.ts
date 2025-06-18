@@ -27,9 +27,9 @@ export const API_ENDPOINTS = {
     //PRODUCTS
     products :{
         base : `${API_BASE_URL}/products/`,
-        detail : (id: string) => `${API_BASE_URL}/products/${id}/`,
+        detail : (id: string) => `${API_BASE_URL}/products/viewset/${id}/`,
         add : `${API_BASE_URL}/products/viewset/`,
-        
+        addVariantes : (id: string) => `${API_BASE_URL}/products/viewset/${id}/add_variantes_bulk/`,
     },
     //ORDERS
     orders :{
@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
         show : (id: string) => `${API_BASE_URL}/orders/show/admin/?number=${id}`,
         accept : (id: string) => `${API_BASE_URL}/orders/accept/admin/?number=${id}/`,
         export : `${API_BASE_URL}/orders/export/orders/`,
+
     },
     //CATEGORIES
     categories :{

@@ -1,32 +1,28 @@
 "use client"
-import axios from "axios"
-import { Check, ChevronLeft, Edit, Eye, Plus, Star, Trash2, X, Calendar } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { useRouter, useParams } from "next/navigation"
-import React, { useEffect, useRef, useState } from "react"
-import toast, { Toaster } from "react-hot-toast"
-import { HOST_IP, PORT, PROTOCOL_HTTP } from "../../../../constants"
 import WithAuth from "@/app/hoc/WithAuth"
-import { getAuthToken } from "@/utils/auth"
-import { getAxiosConfig } from "@/constants/client"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Product, ProductDetail , ProductAttribute, ProductStats} from "@/lib/types/products"
-import { ProductsService } from "@/lib/services/products.service"
-import { useProduct } from "@/hooks/api/products"
-
-// Définir les interfaces pour les types
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getAxiosConfig } from "@/constants/client"
+import { useProductDetail } from "@/hooks/api/products"
+import { ProductAttribute, ProductStats } from "@/lib/types/products"
+import { getAuthToken } from "@/utils/auth"
+import axios from "axios"
+import { Calendar, ChevronLeft, Edit, Eye, Plus, Star, Trash2 } from "lucide-react"
+import Image from "next/image"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import toast from "react-hot-toast"
+import { HOST_IP, PORT, PROTOCOL_HTTP } from "../../../../constants"
 
 const ProductDetailPage = () => {
   const params = useParams();
   const id = params.id as string;
   const router = useRouter();
 
-  const { data: product, isLoading, isError, error } = useProduct(id);
+  const { data: product, isLoading, isError, error } = useProductDetail(id);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -60,11 +56,7 @@ const ProductDetailPage = () => {
   useEffect(() => {
     const fetchAttributes = async () => {
       try {
-        const token = getAuthToken();
-        if (!token) {
-          router.push("/login");
-          return;
-        }
+       
         const response = await axios.get(
           `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/attributes/of/`,
           getAxiosConfig(),
@@ -529,7 +521,7 @@ const ProductDetailPage = () => {
                   <div className="mt-6 flex justify-end">
                     <Button 
                       className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600"
-                      onClick={() => router.push(`/produits/${id}/modifier?addVariant=true`)}
+                      onClick={() => router.push(`/produits/${id}/addVariantes`)}
                     >
                       <Plus className="h-4 w-4" />
                       Ajouter une variante

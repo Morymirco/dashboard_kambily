@@ -32,5 +32,9 @@ export const ProductsService = {
   getProduct : async (id: string) => {
     const response = await API.get<ProductDetail>(API_ENDPOINTS.products.detail(id));
     return response.data;
+  },
+  addVariantes : async (id: string, data: any) => {
+    const response = await API.post(API_ENDPOINTS.products.addVariantes(id), data);
+    return response.data;
   }
 }
