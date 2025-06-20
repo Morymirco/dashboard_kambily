@@ -261,6 +261,7 @@ export default function EditProductPage() {
                       id="regular_price"
                       name="regular_price"
                       type="number"
+                      readOnly
                       value={productData.regular_price}
                       onChange={handleChange}
                       required

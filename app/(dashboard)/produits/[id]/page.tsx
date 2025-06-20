@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getAxiosConfig } from "@/constants/client"
-import { useProductDetail } from "@/hooks/api/products"
+import { useAddImages, useDeleteImages, useProductDetail } from "@/hooks/api/products"
 import { ProductAttribute, ProductStats } from "@/lib/types/products"
 import { getAuthToken } from "@/utils/auth"
 import axios from "axios"
@@ -23,6 +23,8 @@ const ProductDetailPage = () => {
   const router = useRouter();
 
   const { data: product, isLoading, isError, error } = useProductDetail(id);
+  const { mutate: addImages, isPending: isAddingImages } = useAddImages();
+  const { mutate: deleteImages } = useDeleteImages();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -31,7 +33,8 @@ const ProductDetailPage = () => {
   const [availableColors, setAvailableColors] = useState<ProductAttribute[]>([]);
   const [availableSizes, setAvailableSizes] = useState<ProductAttribute[]>([]);
   const [groupedAttributes, setGroupedAttributes] = useState<Record<string, ProductAttribute[]>>({});
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("details");
 
   const [newVariante, setNewVariante] = useState({
@@ -124,6 +127,56 @@ const ProductDetailPage = () => {
         console.error("Erreur lors de la suppression:", error);
         toast.error("Erreur lors de la suppression du produit");
       }
+    }
+  };
+
+  const handleAddImages = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+    Array.from(files).forEach((file) => {
+      formData.append('images', file);
+    });
+
+    addImages(
+      { id, data: formData },
+      {
+        onSuccess: () => {
+          toast.success("Images ajoutées avec succès");
+          if (imageInputRef.current) {
+            imageInputRef.current.value = '';
+          }
+        },
+        onError: (error) => {
+          console.error("Erreur lors de l'ajout d'images:", error);
+          toast.error("Erreur lors de l'ajout d'images");
+        }
+      }
+    );
+  };
+
+  const handleDeleteImage = (imageId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Empêcher la sélection de l'image
+    
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette image ?")) {
+      deleteImages({product_image_id: imageId}, {
+        onSuccess: () => {
+          toast.success("Image supprimée avec succès");
+          // Réinitialiser l'index sélectionné si nécessaire
+          if (selectedImageIndex >= product?.images?.length - 1) {
+            setSelectedImageIndex(Math.max(0, product?.images?.length - 2));
+          }
+        },
+        onError: (error) => {
+          console.error("Erreur lors de la suppression de l'image:", error);
+          toast.error("Erreur lors de la suppression de l'image");
+        }
+      });
     }
   };
 
@@ -243,14 +296,66 @@ const ProductDetailPage = () => {
                 {product.images.map((image, index) => (
                   <div
                     key={index}
-                    className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 ${
+                    className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 relative group ${
                       selectedImageIndex === index ? "border-primary dark:border-blue-500" : "border-transparent"
                     }`}
                     onClick={() => setSelectedImageIndex(index)}
                   >
                     <img src={image.image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                    {/* Bouton de suppression */}
+                    <button
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      onClick={(e) => handleDeleteImage(image.id, e)}
+                      title="Supprimer cette image"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
+                <div
+                  className="w-16 h-16 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                  onClick={handleAddImages}
+                  title="Ajouter des images"
+                >
+                  {isAddingImages ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 dark:border-gray-500"></div>
+                  ) : (
+                    <Plus className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                  )}
+                </div>
+              </div>
+            )}
+            {(!product.images || product.images.length <= 1) && (
+              <div className="p-4 flex gap-2 overflow-x-auto dark:bg-gray-900">
+                {product.images && product.images.length === 1 && (
+                  <div
+                    className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 relative group ${
+                      selectedImageIndex === 0 ? "border-primary dark:border-blue-500" : "border-transparent"
+                    }`}
+                    onClick={() => setSelectedImageIndex(0)}
+                  >
+                    <img src={product.images[0].image} alt={`${product.name} 1`} className="w-full h-full object-cover" />
+                    {/* Bouton de suppression */}
+                    <button
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      onClick={(e) => handleDeleteImage(product.images[0].id, e)}
+                      title="Supprimer cette image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                <div
+                  className="w-16 h-16 rounded-md border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                  onClick={handleAddImages}
+                  title="Ajouter des images"
+                >
+                  {isAddingImages ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400 dark:border-gray-500"></div>
+                  ) : (
+                    <Plus className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                  )}
+                </div>
               </div>
             )}
           </Card>
@@ -685,6 +790,16 @@ const ProductDetailPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Input file caché pour l'ajout d'images */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleImageFileChange}
+        className="hidden"
+      />
     </div>
   );
 };

@@ -134,4 +134,41 @@ export function useAddVariantes() {
       queryClient.invalidateQueries({ queryKey: ['product-detail'] })
     }
   })
+} 
+export function useAddImages() {
+  const queryClient = useQueryClient()
+  const { handleError } = useApiErrorHandler()
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: any }) => {
+      try {
+        return await ProductsService.addImages(id, data)
+      } catch (error: any) {
+        handleError(error, error.response)
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-detail'] })
+    }
+  })
+}
+
+export function useDeleteImages() {
+  const queryClient = useQueryClient()
+  const { handleError } = useApiErrorHandler()
+  
+  return useMutation({
+    mutationFn: async (data: any) => {
+      try {
+        return await ProductsService.deleteImages(data)
+      } catch (error: any) {
+        handleError(error, error.response)
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-detail'] })
+    }
+  })
 }

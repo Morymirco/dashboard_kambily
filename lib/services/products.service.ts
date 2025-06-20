@@ -36,5 +36,21 @@ export const ProductsService = {
   addVariantes : async (id: string, data: any) => {
     const response = await API.post(API_ENDPOINTS.products.addVariantes(id), data);
     return response.data;
+  },
+  addImages : async (id: string, data: any) => {
+    const response = await API.post(API_ENDPOINTS.products.addImages(id), data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  },
+  deleteImages : async (data: any) => {
+    const response = await API.delete(API_ENDPOINTS.products.deleteImages, {
+      data: {
+        product_image_id: data.product_image_id
+      }
+    });
+    return response.data;
   }
 }
