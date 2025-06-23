@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
-import { getAuthToken } from "@/lib/auth-utils"
+import { getCookie } from "@/helpers/cookies"
 import { API_URL } from "@/constants"
 
 export async function GET() {
   try {
-    const token = getAuthToken()
+    const token = getCookie("accessToken")
 
     if (!token) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })

@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { fetchPartnerById, type Partner } from "@/services/partner-service"
 import { API_BASE_URL } from "@/constants"
-import { getAuthToken } from "@/lib/auth-utils"
+import { getCookie } from "@/helpers/cookies"
 
 export default function ModifierPartenairePage() {
   // Utiliser uniquement useParams() pour obtenir l'ID
@@ -76,7 +76,7 @@ export default function ModifierPartenairePage() {
 
     try {
       setSaving(true)
-      const token = getAuthToken()
+      const token = getCookie("accessToken")
       
       if (!token) {
         toast.error("Vous devez être connecté pour effectuer cette action")

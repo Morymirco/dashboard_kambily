@@ -36,8 +36,9 @@ import { useCategoriesOff } from "@/hooks/api/categories"
 import { usePartnersOff } from "@/hooks/api/parteners"
 import { useCreateProduct } from "@/hooks/api/products"
 import { useTags } from "@/hooks/api/tags"
-import { getAuthHeaders, getAuthToken } from "@/lib/auth-utils"
+import { getAuthHeaders} from "@/lib/auth-utils"
 import { CreateProductData } from "@/lib/types/products"
+import { getCookie } from "@/helpers/cookies"
 
 export default function AjouterProduitPage() {
   const router = useRouter()
@@ -338,7 +339,7 @@ export default function AjouterProduitPage() {
     console.log("%c[AjouterProduitPage] Page d'ajout de produit chargée", "color: #3b82f6; font-weight: bold;")
 
     // Vérifier si le token est disponible
-    const token = getAuthToken()
+    const token = getCookie("accessToken")
     if (token) {
       console.log(
         "%c[AjouterProduitPage] Token disponible au chargement:",

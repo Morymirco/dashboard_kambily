@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { getAuthToken } from "@/lib/auth-utils"
+import { getCookie } from "@/helpers/cookies"
 
 /**
  * Hook pour logger la disponibilité du token d'authentification sur chaque page
@@ -12,7 +12,7 @@ export function useAuthLogger() {
 
   useEffect(() => {
     // Récupérer le token
-    const token = getAuthToken()
+    const token = getCookie("accessToken")
 
     // Créer un style pour les logs
     const logStyle = token

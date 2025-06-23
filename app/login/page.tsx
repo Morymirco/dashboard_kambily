@@ -1,4 +1,4 @@
-import { getAuthToken } from "@/lib/auth-utils"
+  import { getCookie } from "@/helpers/cookies"
 import { redirect } from "next/navigation"
 import LoginForm from "./login-form"
 
@@ -8,7 +8,7 @@ export default async function LoginPage({
   searchParams: { redirect?: string }
 }) {
   // Vérifier si l'utilisateur est déjà connecté
-  const token = await getAuthToken()
+  const token = getCookie("accessToken")
 
   if (token) {
 
@@ -27,7 +27,7 @@ export default async function LoginPage({
           <p className="mt-2 text-muted-foreground">Connectez-vous à votre compte administrateur</p>
         </div>
 
-        <LoginForm redirectUrl={searchParams.redirect} />
+        <LoginForm />
       </div>
     </div>
   )

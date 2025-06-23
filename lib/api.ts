@@ -1,4 +1,5 @@
 // import { getAuthToken, refreshAuthToken } from "./supabase-auth"
+import { getCookie } from "@/helpers/cookies"
 
 // Base API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
@@ -11,7 +12,7 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   // Prepare headers with authentication
   const headers = {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(getCookie("accessToken") ? { Authorization: `Bearer ${getCookie("accessToken")}` } : {}),
     ...options.headers,
   }
 
@@ -26,9 +27,9 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
     // Refresh the token
     // token = await refreshAuthToken()
 
-    if (token) {
+    if (getCookie("accessToken")) {
       // Retry the request with the new token
-      headers.Authorization = `Bearer ${token}`
+      headers.Authorization = `Bearer ${getCookie("accessToken")}`
       response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,

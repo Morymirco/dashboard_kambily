@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/pagination"
 import { User,SortConfig } from "@/lib/types/users_list"
 import { fetchUsers, updateUserStatus, deleteUser } from "@/services/user-service"
-import { getAuthToken } from "@/lib/auth-utils"
+
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUsers } from "@/hooks/api/users"
 

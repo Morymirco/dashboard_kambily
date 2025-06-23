@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { getAuthToken, setAuthToken } from "@/lib/auth-utils"
+import { getCookie, setCookieWithExpiry } from "@/helpers/cookies"
 
 export function AuthTokenChecker() {
   useEffect(() => {
@@ -10,13 +10,13 @@ export function AuthTokenChecker() {
       console.log("%c[AuthTokenChecker] Vérification du token au démarrage...", "color: #3b82f6; font-weight: bold;")
 
       // Essayer de récupérer le token
-      const token = getAuthToken()
+      const token = getCookie("accessToken")
 
       if (token) {
         console.log("%c[AuthTokenChecker] Token trouvé au démarrage", "color: #10b981; font-weight: bold;")
 
         // S'assurer que le token est bien stocké partout
-        setAuthToken(token)
+        setCookieWithExpiry("accessToken", token)
       } else {
         console.warn("%c[AuthTokenChecker] Aucun token trouvé au démarrage", "color: #f59e0b; font-weight: bold;")
       }
