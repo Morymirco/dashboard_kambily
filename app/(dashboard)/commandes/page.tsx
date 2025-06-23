@@ -41,13 +41,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useAcceptOrder, useExportOrders, useOrders } from "@/hooks/api/orders"
-import { getAuthToken } from "@/lib/auth-utils"
 import {
   getStatusColor,
   getStatusText
 } from "@/services/order-service"
 import { useQueryClient } from "@tanstack/react-query"
 import { OrderData } from "@/lib/types/orders"
+import { getCookie } from "@/helpers/cookies"
 
 
 
@@ -115,7 +115,7 @@ export default function CommandesPage() {
 
   // Ajouter un effet pour logger la disponibilité du token spécifiquement pour cette page
   useEffect(() => {
-    const token = getAuthToken()
+    const token = getCookie("accessToken")
     console.log(
       `%c[Auth] Page Commandes | Token: ${token ? "Disponible" : "Non disponible"}`,
       token
