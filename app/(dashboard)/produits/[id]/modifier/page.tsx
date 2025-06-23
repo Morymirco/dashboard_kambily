@@ -42,7 +42,7 @@ export default function EditProductPage() {
     is_variable: false,
     categories: [] as number[],
     etiquettes: [] as number[],
-    images: [] as any[],
+    // images: [] as any[],
     short_description: "",
     long_description: ""
   })
@@ -62,7 +62,7 @@ export default function EditProductPage() {
         is_variable: product.product_type === "variable",
         categories: product.categories?.map((cat: any) => cat.id) || [],
         etiquettes: product.etiquettes?.map((tag: any) => tag.id) || [],
-        images: product.images || [],
+        // images: product.images || [],
         short_description: product.short_description || "",
         long_description: product.long_description || ""
       })

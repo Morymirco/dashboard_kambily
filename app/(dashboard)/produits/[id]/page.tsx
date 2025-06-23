@@ -6,9 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getAxiosConfig } from "@/constants/client"
-import { useAddImages, useDeleteImages, useProductDetail } from "@/hooks/api/products"
+import { useAddImages, useDeleteImages, useDeleteProduct, useProductDetail } from "@/hooks/api/products"
 import { ProductAttribute, ProductStats } from "@/lib/types/products"
-import { getAuthToken } from "@/utils/auth"
 import axios from "axios"
 import { Calendar, ChevronLeft, Edit, Eye, Plus, Star, Trash2 } from "lucide-react"
 import Image from "next/image"
@@ -25,6 +24,7 @@ const ProductDetailPage = () => {
   const { data: product, isLoading, isError, error } = useProductDetail(id);
   const { mutate: addImages, isPending: isAddingImages } = useAddImages();
   const { mutate: deleteImages } = useDeleteImages();
+  const { mutate: deleteProduct, isPending: isDeletingProduct } = useDeleteProduct();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -105,28 +105,16 @@ const ProductDetailPage = () => {
 
   const handleDelete = async () => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
-      try {
-        const token = getAuthToken();
-        if (!token) {
-          router.push("/login");
-          return;
-        }
-
-        const response = await axios.delete(
-          `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/${id}/`,
-          getAxiosConfig()
-        );
-
-        if (response.status === 204 || response.status === 200) {
+      deleteProduct(id, {
+        onSuccess: () => {
           toast.success("Produit supprimé avec succès");
           router.push("/produits");
-        } else {
-          throw new Error("Erreur lors de la suppression du produit");
+        },
+        onError: (error) => {
+          console.error("Erreur lors de la suppression:", error);
+          toast.error("Erreur lors de la suppression du produit");
         }
-      } catch (error) {
-        console.error("Erreur lors de la suppression:", error);
-        toast.error("Erreur lors de la suppression du produit");
-      }
+      });
     }
   };
 
@@ -168,9 +156,9 @@ const ProductDetailPage = () => {
         onSuccess: () => {
           toast.success("Image supprimée avec succès");
           // Réinitialiser l'index sélectionné si nécessaire
-          if (selectedImageIndex >= product?.images?.length - 1) {
-            setSelectedImageIndex(Math.max(0, product?.images?.length - 2));
-          }
+          // if (selectedImageIndex >= product?.images?.length - 1) {
+          //   setSelectedImageIndex(Math.max(0, product?.images?.length - 2));
+          // }
         },
         onError: (error) => {
           console.error("Erreur lors de la suppression de l'image:", error);

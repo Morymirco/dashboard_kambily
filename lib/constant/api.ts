@@ -31,7 +31,8 @@ export const API_ENDPOINTS = {
         add : `${API_BASE_URL}/products/viewset/`,
         addVariantes : (id: string) => `${API_BASE_URL}/products/viewset/${id}/add_variantes_bulk/`,
         addImages : (id: string) => `${API_BASE_URL}/products/viewset/${id}/add-images-main-product/`,
-        deleteImages :  `${API_BASE_URL}/products/viewset/delete-images-main-product/`,
+        deleteImages :  `${API_BASE_URL}/products/viewset/remove-image-variante/`,
+
     },
     //ORDERS
     orders :{
