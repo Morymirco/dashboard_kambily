@@ -10,7 +10,7 @@ import { HOST_IP, PORT, PROTOCOL_HTTP } from "@/constants"
 import { getAxiosConfig } from "@/constants/client"
 import { useAddVariantes, useProductDetail } from "@/hooks/api/products"
 import axios from "axios"
-import { ChevronLeft, Plus, Save, Trash2 } from "lucide-react"
+import { ChevronLeft, Plus, Save, Trash2, Upload, X } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
@@ -23,7 +23,6 @@ interface Variant {
   image: string | null
   image_url: string | null
   quantities: number[] // Quantité par ID d'attribut en tableau
-  regular_price: string
   promo_price: string
 }
 
@@ -98,7 +97,7 @@ export default function AddVariantesPage() {
     e.preventDefault()
 
     // Convertir les variantes pour correspondre au format attendu par l'API
-    const formattedVariants = variants.map(variant => {
+    const formattedVariants = variants.map((variant, variantIndex) => {
       // Séparer l'attribut principal des attributs secondaires
       const mainAttributValue = variant.attributs[0]
       // Ne garder que les attributs secondaires dans le tableau attributs
@@ -124,12 +123,10 @@ export default function AddVariantesPage() {
       return {
         main_attribut: mainAttributValue,
         attributs: secondaryAttributes,
-        images: variant.images || [],
         images_url: variant.images_url || [],
         image: variant.image,
         image_url: variant.image_url,
         quantities: quantities,
-        regular_price: variant.regular_price,
         promo_price: variant.promo_price
       }
     })
@@ -156,24 +153,66 @@ export default function AddVariantesPage() {
       return
     }
 
-    console.log("Données envoyées:", formattedVariants)
+    // Vérifier s'il y a des images à uploader
+    const hasImages = variants.some(variant => variant.images && variant.images.length > 0)
 
-    addVariantes(
-      { 
-        id, 
-        data: { variantes: formattedVariants } 
-      },
-      {
-        onSuccess: () => {
-          toast.success("Variantes ajoutées avec succès")
-          router.push(`/produits/${id}`)
-        },
-        onError: (error) => {
-          console.error("Erreur lors de l'ajout des variantes:", error)
-          toast.error("Erreur lors de l'ajout des variantes")
+    if (hasImages) {
+      // Créer un FormData pour envoyer les images
+      const formData = new FormData()
+      
+      // Ajouter les données des variantes au FormData
+      formData.append('variantes', JSON.stringify(formattedVariants))
+      
+      // Ajouter les images au FormData
+      variants.forEach((variant, variantIndex) => {
+        if (variant.images && variant.images.length > 0) {
+          variant.images.forEach((image, imageIndex) => {
+            if (image instanceof File) {
+              formData.append(`variantes[${variantIndex}].images`, image)
+            }
+          })
         }
-      }
-    )
+      })
+
+      console.log("Données envoyées avec FormData:", formattedVariants)
+
+      addVariantes(
+        { 
+          id, 
+          data: formData 
+        },
+        {
+          onSuccess: () => {
+            toast.success("Variantes ajoutées avec succès")
+            router.push(`/produits/${id}`)
+          },
+          onError: (error) => {
+            console.error("Erreur lors de l'ajout des variantes:", error)
+            toast.error("Erreur lors de l'ajout des variantes")
+          }
+        }
+      )
+    } else {
+      // Pas d'images, envoyer comme JSON simple
+      console.log("Données envoyées en JSON:", formattedVariants)
+
+      addVariantes(
+        { 
+          id, 
+          data: { variantes: formattedVariants } 
+        },
+        {
+          onSuccess: () => {
+            toast.success("Variantes ajoutées avec succès")
+            router.push(`/produits/${id}`)
+          },
+          onError: (error) => {
+            console.error("Erreur lors de l'ajout des variantes:", error)
+            toast.error("Erreur lors de l'ajout des variantes")
+          }
+        }
+      )
+    }
   }
 
   if (isLoading) {
@@ -273,7 +312,6 @@ export default function AddVariantesPage() {
                             main_attribut: parseInt(value),
                             attributs: [],
                             quantities: [],
-                            regular_price: "",
                             promo_price: ""
                           }
                           setVariants(newVariants)
@@ -333,27 +371,7 @@ export default function AddVariantesPage() {
                     )}
 
                     {/* Prix */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor={`regular-price-${index}`}>
-                          Prix régulier <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          id={`regular-price-${index}`}
-                          type="number"
-                          placeholder="0"
-                          value={variant.regular_price || ""}
-                          onChange={(e) => {
-                            const newVariants = [...variants]
-                            newVariants[index] = {
-                              ...newVariants[index],
-                              regular_price: e.target.value
-                            }
-                            setVariants(newVariants)
-                          }}
-                          required
-                        />
-                      </div>
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <Label htmlFor={`promo-price-${index}`}>
                           Prix promotionnel <span className="text-red-500">*</span>
@@ -373,6 +391,103 @@ export default function AddVariantesPage() {
                           }}
                           required
                         />
+                      </div>
+                    </div>
+
+                    {/* Upload d'images */}
+                    <div>
+                      <Label>Images de la variante</Label>
+                      <div className="mt-2">
+                        {/* Zone de drop pour les images */}
+                        <div 
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors"
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.add('border-blue-400', 'bg-blue-50')
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50')
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50')
+                            
+                            const files = Array.from(e.dataTransfer.files).filter(file => 
+                              file.type.startsWith('image/')
+                            )
+                            
+                            if (files.length > 0) {
+                              const newVariants = [...variants]
+                              newVariants[index] = {
+                                ...newVariants[index],
+                                images: [...(newVariants[index].images || []), ...files]
+                              }
+                              setVariants(newVariants)
+                            }
+                          }}
+                        >
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            id={`image-upload-${index}`}
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || [])
+                              const newVariants = [...variants]
+                              newVariants[index] = {
+                                ...newVariants[index],
+                                images: [...(newVariants[index].images || []), ...files]
+                              }
+                              setVariants(newVariants)
+                            }}
+                          />
+                          <label 
+                            htmlFor={`image-upload-${index}`}
+                            className="cursor-pointer flex flex-col items-center"
+                          >
+                            <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                            <span className="text-sm text-gray-600">
+                              Cliquez pour sélectionner des images ou glissez-déposez
+                            </span>
+                            <span className="text-xs text-gray-500 mt-1">
+                              PNG, JPG, JPEG jusqu'à 10MB
+                            </span>
+                          </label>
+                        </div>
+
+                        {/* Prévisualisation des images */}
+                        {variant.images && variant.images.length > 0 && (
+                          <div className="mt-4">
+                            <Label className="text-sm font-medium">Images sélectionnées :</Label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
+                              {variant.images.map((image, imageIndex) => (
+                                <div key={imageIndex} className="relative group">
+                                  <img
+                                    src={typeof image === 'string' ? image : URL.createObjectURL(image)}
+                                    alt={`Image ${imageIndex + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newVariants = [...variants]
+                                      newVariants[index] = {
+                                        ...newVariants[index],
+                                        images: newVariants[index].images.filter((_, i) => i !== imageIndex)
+                                      }
+                                      setVariants(newVariants)
+                                    }}
+                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -502,7 +617,6 @@ export default function AddVariantesPage() {
                       image: null,
                       image_url: null,
                       quantities: [],
-                      regular_price: "",
                       promo_price: ""
                     }
                   ])

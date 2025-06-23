@@ -34,7 +34,27 @@ export const ProductsService = {
     return response.data;
   },
   addVariantes : async (id: string, data: any) => {
-    const response = await API.post(API_ENDPOINTS.products.addVariantes(id), data);
+    let config: any = {}
+    
+    if (data instanceof FormData) {
+      // Pour FormData, ne pas définir Content-Type, laissez axios le gérer
+      // Mais ajouter les headers nécessaires pour l'authentification
+      config = {
+        headers: {
+          'Accept': 'application/json'
+        }
+      }
+    } else {
+      // Pour JSON, définir le Content-Type
+      config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    }
+    
+    const response = await API.post(API_ENDPOINTS.products.addVariantes(id), data, config);
     return response.data;
   },
   addImages : async (id: string, data: any) => {

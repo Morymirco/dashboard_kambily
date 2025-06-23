@@ -1,4 +1,5 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL 
+// API_BASE_URL avec valeur par défaut pour éviter undefined
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.kambily.com"
 
 export const API_ENDPOINTS = {
     //AUTH 
