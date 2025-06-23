@@ -1,3 +1,4 @@
+import { getCookie, setCookieWithExpiry } from "@/helpers/cookies"
 import type { NextRequest } from "next/server"
 // import { getAuthToken } from "@/lib/auth-utils" // Removed this import as getAuthToken is now defined in this file
 
@@ -5,7 +6,7 @@ export const setAuthToken = (token: string) => {
   console.log("%c[Auth] Setting auth token", "color: #2196F3")
 
   // Store in localStorage
-  localStorage.setItem("authToken", token)
+  setCookieWithExpiry("accessToken", token) 
 
   // Store in cookies (expires in 7 days)
   const expiryDate = new Date()
@@ -21,7 +22,7 @@ export const setAuthToken = (token: string) => {
 
 export const getAuthToken = () => {
   // Try to get token from localStorage
-  const localStorageToken = localStorage.getItem("authToken")
+  const localStorageToken = getCookie("accessToken")
   if (localStorageToken) {
     return localStorageToken
   }
@@ -46,7 +47,7 @@ export const getAuthToken = () => {
 }
 
 export const clearAuthToken = () => {
-  localStorage.removeItem("authToken")
+  
   sessionStorage.removeItem("authToken")
   document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
 }

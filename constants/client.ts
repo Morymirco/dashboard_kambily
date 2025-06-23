@@ -1,6 +1,6 @@
 "use client"
 
-import Cookies from "js-cookie"
+import { getCookie } from "@/helpers/cookies"
 
 // Configuration de l'API
 export const HOST_IP = "api.kambily.com"
@@ -23,7 +23,7 @@ export const getAuthToken = () => {
   }
 
   // Fallback vers les cookies pour la compatibilité pendant la transition
-  const token = Cookies.get("access_token")
+  const token = getCookie("accessToken")
   if (token) {
     // Migrer vers localStorage
     if (typeof localStorage !== "undefined") {

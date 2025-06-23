@@ -2,7 +2,6 @@
 
 import { API_BASE_URL } from "@/constants"
 import { getCookie, removeCookie, setCookieWithExpiry } from "@/helpers/cookies"
-import { getAuthToken, removeAuthToken } from "@/lib/auth-utils"
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { toast } from "react-hot-toast"
 
@@ -352,13 +351,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Supprimer les données du localStorage
     removeCookie("accessToken")
     removeCookie("user")
-    removeAuthToken()
 
     // Mettre à jour l'état
     setUser(null)
 
     // Vérifier que le token est bien supprimé
-    const storedToken = getAuthToken()
+    const storedToken = getCookie("accessToken")
     console.log(
       `%c[Auth] Token supprimé: ${!storedToken ? "Oui" : "Non"}`,
       !storedToken

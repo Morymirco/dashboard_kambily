@@ -3,17 +3,20 @@
  * Récupère le token d'authentification depuis le localStorage
  * @returns {string|null} Le token d'authentification ou null s'il n'existe pas
  */
-export function getAuthToken(): string | null {
-  // Vérifier si nous sommes côté client
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('authToken')
-  }
-  return null
-}
+// export function getAuthToken(): string | null {
+//   // Vérifier si nous sommes côté client
+//   if (typeof window !== 'undefined') {
+//     return localStorage.getItem('authToken')
+//   }
+//   return null
+// }
+
+import { getCookie, setCookieWithExpiry } from "@/helpers/cookies"
 
 // Fonction pour récupérer les headers d'authentification
 export const getAuthHeaders = (): Record<string, string> => {
-  const token = getAuthToken()
+  // const token = getAuthToken()
+  const token = getCookie("accessToken")
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -31,30 +34,30 @@ export const getAuthHeaders = (): Record<string, string> => {
  * Vérifie si un token d'authentification existe
  * @returns {boolean} True si un token existe, false sinon
  */
-export function hasAuthToken(): boolean {
-  return !!getAuthToken()
-}
+// export function hasAuthToken(): boolean {
+//   return !!getAuthToken()
+// }
 
 // Fonction pour stocker le token d'authentification
 /**
  * Enregistre le token d'authentification dans le localStorage
  * @param {string} token - Le token d'authentification à enregistrer
- */
-export function setAuthToken(token: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('authToken', token)
-  }
-}
+//  */
+// export function setAuthToken(token: string): void {
+//   if (typeof window !== 'undefined') {
+//     localStorage.setItem('authToken', token)
+//   }
+// }
 
 // Fonction pour supprimer le token d'authentification
 /**
  * Supprime le token d'authentification du localStorage
- */
-export function removeAuthToken(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('authToken')
-  }
-}
+//  */
+//  export function removeAuthToken(): void {
+//   if (typeof window !== 'undefined') {
+//     localStorage.removeItem('authToken')
+//   }
+// }
 
 // Fonction pour stocker les informations de l'utilisateur
 export const setAuthUser = (user: any): void => {
@@ -63,7 +66,7 @@ export const setAuthUser = (user: any): void => {
   }
 
   try {
-    localStorage.setItem("auth_user", JSON.stringify(user))
+    setCookieWithExpiry("user", JSON.stringify(user))
   } catch (error) {
     console.error("Erreur lors du stockage des informations de l'utilisateur:", error)
   }
@@ -76,7 +79,7 @@ export const getAuthUser = (): any | null => {
   }
 
   try {
-    const user = localStorage.getItem("auth_user")
+    const user = getCookie("user")
     return user ? JSON.parse(user) : null
   } catch (error) {
     console.error("Erreur lors de la récupération des informations de l'utilisateur:", error)
@@ -90,10 +93,10 @@ export const removeAuthUser = (): void => {
     return
   }
 
-  try {
-    localStorage.removeItem("auth_user")
-  } catch (error) {
-    console.error("Erreur lors de la suppression des informations de l'utilisateur:", error)
-  }
+  // try {
+  //     deleteCookie("user")
+  // } catch (error) {
+  //   console.error("Erreur lors de la suppression des informations de l'utilisateur:", error)
+  // }
 }
 
