@@ -158,17 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedToken = getCookie("accessToken")
         let storedUser = getCookie("user")
         
-        console.log("=== CHARGEMENT DEPUIS COOKIES ===")
-        console.log("Token:", storedToken ? "EXISTS" : "MISSING")
-        console.log("User cookie:", storedUser ? "EXISTS" : "MISSING")
-        
-        // Si pas de cookie user, essayer localStorage
-        if (!storedUser) {
-          console.log("Trying localStorage fallback...")
-          storedUser = localStorage.getItem("user")
-          console.log("User localStorage:", storedUser ? "EXISTS" : "MISSING")
-        }
-
+       
         if (storedToken && storedUser) {
           console.log("Parsing user data...")
           const parsedUser = JSON.parse(storedUser)
@@ -251,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUser = { ...prevUser, ...userData }
       
       // Mettre à jour le localStorage
-      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+      setCookieWithExpiry("user", JSON.stringify(updatedUser))
       
       return updatedUser
     })
@@ -310,12 +300,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Essayer avec localStorage aussi comme fallback
       try {
         setCookieWithExpiry("user", userString)
-        localStorage.setItem("user", userString)
+      
         console.log("User data stored in both cookie and localStorage")
       } catch (error) {
         console.error("Error storing user data:", error)
         // Si le cookie échoue, utiliser localStorage uniquement
-        localStorage.setItem("user", userString)
+        setCookieWithExpiry("user", userString)
         console.log("Fallback: User data stored only in localStorage")
       }
       
@@ -324,7 +314,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("=== VERIFICATION COOKIES ===")
         console.log("accessToken cookie:", getCookie("accessToken") ? "SET" : "NOT SET")
         console.log("user cookie:", getCookie("user") ? "SET" : "NOT SET")
-        console.log("user localStorage:", localStorage.getItem("user") ? "SET" : "NOT SET")
       }, 100)
 
       // Mettre à jour l'état
@@ -404,10 +393,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let userCookie = getCookie("user")
     
     // Si pas de cookie, essayer localStorage  
-    if (!userCookie) {
-      userCookie = localStorage.getItem("user")
-    }
-    
+  
     console.log("=== isAuthenticated CHECK ===")
     console.log("accessToken:", token ? "YES" : "NO")
     console.log("user data:", userCookie ? "YES" : "NO")
