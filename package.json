@@ -47,6 +47,7 @@
     "cmdk": "1.0.4",
     "cookies": "^0.9.1",
     "date-fns": "latest",
+    "dompurify": "^3.2.6",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
     "js-cookie": "^3.0.5",

@@ -11,6 +11,7 @@ import { Edit, Eye, Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import DOMPurify from "dompurify"
 
 export default function ProduitsPage() {
   const [currentPage, setCurrentPage] = useState(1)
@@ -265,9 +266,13 @@ export default function ProduitsPage() {
                   {/* Informations du produit */}
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {product.short_description}
-                    </p>
+                    <p
+  className="text-sm text-muted-foreground line-clamp-2"
+  dangerouslySetInnerHTML={{
+    __html: DOMPurify.sanitize(product.short_description),
+  }}
+></p>
+
                     <div className="flex items-center space-x-4 mt-2">
                       <span className="font-medium">{product.regular_price} GNF</span>
                       {product.promo_price && (
@@ -283,6 +288,9 @@ export default function ProduitsPage() {
                       </span>
                       <span className="text-sm text-muted-foreground">
                         Ventes: {product.nombre_ventes}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        Type: {product.product_type}
                       </span>
                     </div>
                   </div>
