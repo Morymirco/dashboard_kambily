@@ -417,12 +417,16 @@ export default function AjouterProduitPage() {
                     <Label htmlFor="sku">
                       SKU <span className="text-red-500">*</span>
                     </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Le SKU sera généré automatiquement par le système
+                    </p>
                     <Input
                       id="sku"
                       name="sku"
                       placeholder="SKU-12345"
                       value={productData.sku}
                       onChange={handleChange}
+                      readOnly
                       required
                     />
                   </div>
@@ -646,17 +650,19 @@ export default function AjouterProduitPage() {
                 <Separator />
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantité en stock</Label>
-                    <Input
-                      id="quantity"
-                      name="quantity"
-                      type="number"
-                      placeholder="0"
-                      value={productData.quantity}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  {productData.product_type !== "variable" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantité en stock</Label>
+                      <Input
+                        id="quantity"
+                        name="quantity"
+                        type="number"
+                        placeholder="0"
+                        value={productData.quantity}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="product_type">Type de produit</Label>
                     <Select
@@ -673,6 +679,15 @@ export default function AjouterProduitPage() {
                     </Select>
                   </div>
                 </div>
+                
+                {productData.product_type === "variable" && (
+                  <div className="space-y-2">
+                    <Label>Quantité en stock</Label>
+                    <p className="text-sm text-muted-foreground">
+                      La quantité sera gérée au niveau des variantes du produit
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

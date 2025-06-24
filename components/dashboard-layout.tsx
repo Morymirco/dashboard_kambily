@@ -23,6 +23,7 @@ import {
   User,
   Tags,
   MessageSquare,
+  Tag,
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/contexts/auth-context"
@@ -145,6 +146,28 @@ export default function DashboardLayout({
           >
             <Tags className="mr-3 h-5 w-5" />
             Catégories
+          </Link>
+          <Link
+            href="/etiquettes"
+            className={`flex items-center rounded-md px-3 py-2 ${
+              isActive("/etiquettes")
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <Tags className="mr-3 h-5 w-5" />
+            Étiquettes
+          </Link>
+          <Link
+            href="/attributs"
+            className={`flex items-center rounded-md px-3 py-2 ${
+              isActive("/attributs")
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+          >
+            <Tag className="mr-3 h-5 w-5" />
+            Attributs
           </Link>
           <Link
             href="/reviews/admin"

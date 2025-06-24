@@ -17,6 +17,7 @@ import { ChevronLeft, Save } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function EditProductPage() {
   const params = useParams()
@@ -40,6 +41,7 @@ export default function EditProductPage() {
     is_recommended: false,
     is_vedette: false,
     is_variable: false,
+    partenaire: 0,
     categories: [] as number[],
     etiquettes: [] as number[],
     // images: [] as any[],
@@ -60,6 +62,7 @@ export default function EditProductPage() {
         is_recommended: false,
         is_vedette: false,
         is_variable: product.product_type === "variable",
+        partenaire: (product as any).partenaire || 0,
         categories: product.categories?.map((cat: any) => cat.id) || [],
         etiquettes: product.etiquettes?.map((tag: any) => tag.id) || [],
         // images: product.images || [],
@@ -159,11 +162,15 @@ export default function EditProductPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sku">SKU</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Le SKU est généré automatiquement par le système
+                    </p>
                     <Input
                       id="sku"
                       name="sku"
                       value={productData.sku}
                       onChange={handleChange}
+                      readOnly
                       required
                     />
                   </div>
@@ -189,6 +196,28 @@ export default function EditProductPage() {
                     }
                     height={400}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="partenaire">Partenaire</Label>
+                  <Select
+                    value={productData.partenaire ? productData.partenaire.toString() : "0"}
+                    onValueChange={(value) =>
+                      setProductData(prev => ({ ...prev, partenaire: Number.parseInt(value, 10) }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un partenaire" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Aucun partenaire</SelectItem>
+                      {partnersData?.map((partner: any) => (
+                        <SelectItem key={partner.id} value={partner.id.toString()}>
+                          {partner.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -269,16 +298,27 @@ export default function EditProductPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantité en stock</Label>
-                  <Input
-                    id="quantity"
-                    name="quantity"
-                    type="number"
-                    value={productData.quantity}
-                    onChange={handleChange}
-                  />
-                </div>
+                {productData.product_type !== "variable" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantité en stock</Label>
+                    <Input
+                      id="quantity"
+                      name="quantity"
+                      type="number"
+                      value={productData.quantity}
+                      onChange={handleChange}
+                    />
+                  </div>
+                )}
+                
+                {productData.product_type === "variable" && (
+                  <div className="space-y-2">
+                    <Label>Quantité en stock</Label>
+                    <p className="text-sm text-muted-foreground">
+                      La quantité est gérée au niveau des variantes du produit
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
