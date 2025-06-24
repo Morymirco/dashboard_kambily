@@ -29,7 +29,7 @@ export function Editor({
   return (
     <div className={className}>
       <TinyMCEEditor
-        apiKey="mjjyehwq9a0xz6bjfi4nujhra01x9ffgzaeekiwxd84ce1v1"
+        apiKey="eube99ngk5almvi7sjqm1fmreuu0adumjpnm7qe99k9a9ynq"
         value={value}
         onEditorChange={onChange}
         init={{

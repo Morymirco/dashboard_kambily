@@ -55,6 +55,7 @@ export const ProductsService = {
     }
     
     const response = await API.post(API_ENDPOINTS.products.addVariantes(id), data, config);
+    console.log(response.data);
     return response.data;
   },
   addImages : async (id: string, data: any) => {

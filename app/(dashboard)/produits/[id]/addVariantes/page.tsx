@@ -160,15 +160,27 @@ export default function AddVariantesPage() {
       // Créer un FormData pour envoyer les images
       const formData = new FormData()
       
-      // Ajouter les données des variantes au FormData
-      formData.append('variantes', JSON.stringify(formattedVariants))
-      
-      // Ajouter les images au FormData
-      variants.forEach((variant, variantIndex) => {
-        if (variant.images && variant.images.length > 0) {
-          variant.images.forEach((image, imageIndex) => {
+      // Ajouter les données des variantes au FormData de manière structurée
+      formattedVariants.forEach((variant, variantIndex) => {
+        // Ajouter les données de base de la variante
+        formData.append(`variantes[${variantIndex}][main_attribut]`, variant.main_attribut.toString())
+        formData.append(`variantes[${variantIndex}][promo_price]`, variant.promo_price)
+        
+        // Ajouter les attributs
+        variant.attributs.forEach((attr, attrIndex) => {
+          formData.append(`variantes[${variantIndex}][attributs][${attrIndex}]`, attr.toString())
+        })
+        
+        // Ajouter les quantités
+        variant.quantities.forEach((qty, qtyIndex) => {
+          formData.append(`variantes[${variantIndex}][quantities][${qtyIndex}]`, qty.toString())
+        })
+        
+        // Ajouter les images pour cette variante
+        if (variants[variantIndex].images && variants[variantIndex].images.length > 0) {
+          variants[variantIndex].images.forEach((image, imageIndex) => {
             if (image instanceof File) {
-              formData.append(`variantes[${variantIndex}].images`, image)
+              formData.append(`variantes[${variantIndex}][images][${imageIndex}]`, image)
             }
           })
         }
@@ -184,6 +196,7 @@ export default function AddVariantesPage() {
         {
           onSuccess: () => {
             toast.success("Variantes ajoutées avec succès")
+            
             router.push(`/produits/${id}`)
           },
           onError: (error) => {
@@ -400,31 +413,47 @@ export default function AddVariantesPage() {
                       <div className="mt-2">
                         {/* Zone de drop pour les images */}
                         <div 
-                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors"
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-teal-400 hover:bg-teal-50 transition-all duration-200 cursor-pointer"
                           onDragOver={(e) => {
                             e.preventDefault()
-                            e.currentTarget.classList.add('border-blue-400', 'bg-blue-50')
+                            e.currentTarget.classList.add('border-teal-400', 'bg-teal-50', 'scale-105')
                           }}
                           onDragLeave={(e) => {
                             e.preventDefault()
-                            e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50')
+                            e.currentTarget.classList.remove('border-teal-400', 'bg-teal-50', 'scale-105')
                           }}
                           onDrop={(e) => {
                             e.preventDefault()
-                            e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50')
+                            e.currentTarget.classList.remove('border-teal-400', 'bg-teal-50', 'scale-105')
                             
                             const files = Array.from(e.dataTransfer.files).filter(file => 
                               file.type.startsWith('image/')
                             )
                             
                             if (files.length > 0) {
-                              const newVariants = [...variants]
-                              newVariants[index] = {
-                                ...newVariants[index],
-                                images: [...(newVariants[index].images || []), ...files]
+                              // Vérifier la taille des fichiers (max 10MB)
+                              const validFiles = files.filter(file => file.size <= 10 * 1024 * 1024)
+                              const invalidFiles = files.filter(file => file.size > 10 * 1024 * 1024)
+                              
+                              if (invalidFiles.length > 0) {
+                                toast.error(`${invalidFiles.length} fichier(s) trop volumineux (max 10MB)`)
                               }
-                              setVariants(newVariants)
+                              
+                              if (validFiles.length > 0) {
+                                const newVariants = [...variants]
+                                newVariants[index] = {
+                                  ...newVariants[index],
+                                  images: [...(newVariants[index].images || []), ...validFiles]
+                                }
+                                setVariants(newVariants)
+                                toast.success(`${validFiles.length} image(s) ajoutée(s)`)
+                              }
+                            } else {
+                              toast.error("Aucune image valide trouvée")
                             }
+                          }}
+                          onClick={() => {
+                            document.getElementById(`image-upload-${index}`)?.click()
                           }}
                         >
                           <input
@@ -435,56 +464,117 @@ export default function AddVariantesPage() {
                             id={`image-upload-${index}`}
                             onChange={(e) => {
                               const files = Array.from(e.target.files || [])
-                              const newVariants = [...variants]
-                              newVariants[index] = {
-                                ...newVariants[index],
-                                images: [...(newVariants[index].images || []), ...files]
+                              
+                              if (files.length > 0) {
+                                // Vérifier la taille des fichiers (max 10MB)
+                                const validFiles = files.filter(file => file.size <= 10 * 1024 * 1024)
+                                const invalidFiles = files.filter(file => file.size > 10 * 1024 * 1024)
+                                
+                                if (invalidFiles.length > 0) {
+                                  toast.error(`${invalidFiles.length} fichier(s) trop volumineux (max 10MB)`)
+                                }
+                                
+                                if (validFiles.length > 0) {
+                                  const newVariants = [...variants]
+                                  newVariants[index] = {
+                                    ...newVariants[index],
+                                    images: [...(newVariants[index].images || []), ...validFiles]
+                                  }
+                                  setVariants(newVariants)
+                                  toast.success(`${validFiles.length} image(s) ajoutée(s)`)
+                                }
                               }
-                              setVariants(newVariants)
+                              
+                              // Réinitialiser l'input
+                              e.target.value = ''
                             }}
                           />
-                          <label 
-                            htmlFor={`image-upload-${index}`}
-                            className="cursor-pointer flex flex-col items-center"
-                          >
-                            <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                            <span className="text-sm text-gray-600">
-                              Cliquez pour sélectionner des images ou glissez-déposez
-                            </span>
-                            <span className="text-xs text-gray-500 mt-1">
-                              PNG, JPG, JPEG jusqu'à 10MB
-                            </span>
-                          </label>
+                          <div className="flex flex-col items-center">
+                            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mb-4">
+                              <Upload className="h-8 w-8 text-teal-600" />
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                              Glissez vos images ici
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2">
+                              ou cliquez pour sélectionner des fichiers
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>Formats acceptés: PNG, JPG, JPEG</span>
+                              <span>•</span>
+                              <span>Max 10MB par fichier</span>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Prévisualisation des images */}
                         {variant.images && variant.images.length > 0 && (
-                          <div className="mt-4">
-                            <Label className="text-sm font-medium">Images sélectionnées :</Label>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
+                          <div className="mt-6">
+                            <div className="flex items-center justify-between mb-3">
+                              <Label className="text-sm font-medium">
+                                Images sélectionnées ({variant.images.length})
+                              </Label>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newVariants = [...variants]
+                                  newVariants[index] = {
+                                    ...newVariants[index],
+                                    images: []
+                                  }
+                                  setVariants(newVariants)
+                                  toast.success("Toutes les images ont été supprimées")
+                                }}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Tout supprimer
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                               {variant.images.map((image, imageIndex) => (
                                 <div key={imageIndex} className="relative group">
-                                  <img
-                                    src={typeof image === 'string' ? image : URL.createObjectURL(image)}
-                                    alt={`Image ${imageIndex + 1}`}
-                                    className="w-full h-24 object-cover rounded-lg border"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newVariants = [...variants]
-                                      newVariants[index] = {
-                                        ...newVariants[index],
-                                        images: newVariants[index].images.filter((_, i) => i !== imageIndex)
-                                      }
-                                      setVariants(newVariants)
-                                    }}
-                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
+                                  <div className="aspect-square rounded-lg border-2 border-gray-200 overflow-hidden hover:border-teal-300 transition-colors">
+                                    <img
+                                      src={typeof image === 'string' ? image : URL.createObjectURL(image)}
+                                      alt={`Image ${imageIndex + 1}`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newVariants = [...variants]
+                                        newVariants[index] = {
+                                          ...newVariants[index],
+                                          images: newVariants[index].images.filter((_, i) => i !== imageIndex)
+                                        }
+                                        setVariants(newVariants)
+                                        toast.success("Image supprimée")
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                  <div className="absolute -top-2 -right-2 bg-teal-500 text-white text-xs px-2 py-1 rounded-full">
+                                    {imageIndex + 1}
+                                  </div>
                                 </div>
                               ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Indicateur de progression */}
+                        {variant.images && variant.images.length > 0 && (
+                          <div className="mt-4 p-3 bg-teal-50 rounded-lg">
+                            <div className="flex items-center gap-2 text-sm text-teal-700">
+                              <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                              <span>{variant.images.length} image(s) prête(s) à être uploadée(s)</span>
                             </div>
                           </div>
                         )}

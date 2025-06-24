@@ -130,6 +130,7 @@ export function useAddVariantes() {
         throw error
       }
     },
+    //reponse de la mutation
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-detail'] })
     }
