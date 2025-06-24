@@ -651,17 +651,17 @@ export default function AjouterProduitPage() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {productData.product_type !== "variable" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="quantity">Quantité en stock</Label>
-                      <Input
-                        id="quantity"
-                        name="quantity"
-                        type="number"
-                        placeholder="0"
-                        value={productData.quantity}
-                        onChange={handleChange}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantité en stock</Label>
+                    <Input
+                      id="quantity"
+                      name="quantity"
+                      type="number"
+                      placeholder="0"
+                      value={productData.quantity}
+                      onChange={handleChange}
+                    />
+                  </div>
                   )}
                   <div className="space-y-2">
                     <Label htmlFor="product_type">Type de produit</Label>

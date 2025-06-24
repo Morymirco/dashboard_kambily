@@ -575,6 +575,7 @@ const ProductDetailPage = () => {
                                 <thead>
                                   <tr className="border-b dark:border-gray-800 bg-muted/50 dark:bg-gray-900/50">
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Image</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attribut principal</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs secondaires</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">SKU</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</th>
@@ -612,12 +613,40 @@ const ProductDetailPage = () => {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3">
+                                        {variant.attributs && variant.attributs.length > 0 ? (
+                                          <div className="flex items-center gap-2">
+                                            <Badge 
+                                              variant="outline" 
+                                              className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300 cursor-pointer hover:bg-primary/20 dark:hover:bg-blue-900/70 transition-colors group"
+                                              style={variant.attributs[0].hex_code ? { 
+                                                backgroundColor: variant.attributs[0].hex_code, 
+                                                color: 'white',
+                                                borderColor: variant.attributs[0].hex_code
+                                              } : {}}
+                                              onClick={() => router.push(`/produits/${id}/variante/${variant.id}`)}
+                                            >
+                                              {variant.attributs[0].attribut.nom}: {variant.attributs[0].valeur}
+                                              <Eye className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </Badge>
+                                          </div>
+                                        ) : (
+                                          <span className="text-sm text-muted-foreground dark:text-gray-500">
+                                            Aucun attribut principal
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3">
                                         <div className="flex flex-wrap gap-1">
                                           {getSecondaryAttributes(variant).map((attr: any) => (
                                             <Badge 
                                               key={attr.id} 
                                               variant="outline" 
                                               className="bg-muted dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                                              style={attr.hex_code ? { 
+                                                backgroundColor: attr.hex_code, 
+                                                color: 'white',
+                                                borderColor: attr.hex_code
+                                              } : {}}
                                             >
                                               {attr.attribut.nom}: {attr.valeur}
                                             </Badge>
@@ -656,15 +685,17 @@ const ProductDetailPage = () => {
                                         </Badge>
                                       </td>
                                       <td className="px-4 py-3">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
-                                          className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
-                                          onClick={() => router.push(`/produits/${id}/modifier?variant=${variant.id}`)}
-                                        >
-                                          <Edit className="h-3.5 w-3.5 mr-1" />
-                                          Modifier
-                                        </Button>
+                                        <div className="flex gap-1">
+                                          <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                            onClick={() => router.push(`/produits/${id}/modifier?variant=${variant.id}`)}
+                                          >
+                                            <Edit className="h-3.5 w-3.5 mr-1" />
+                                            Modifier
+                                          </Button>
+                                        </div>
                                       </td>
                                     </tr>
                                   ))}
@@ -679,7 +710,8 @@ const ProductDetailPage = () => {
                   
                   <div className="mt-6 flex justify-end">
                     <Button 
-                      className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 dark:bg-teal-700 dark:hover:bg-teal-600"
+                      variant="outline"
+                      className="flex items-center gap-2 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-900"
                       onClick={() => router.push(`/produits/${id}/addVariantes`)}
                     >
                       <Plus className="h-4 w-4" />

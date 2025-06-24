@@ -299,16 +299,16 @@ export default function EditProductPage() {
                 </div>
 
                 {productData.product_type !== "variable" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantité en stock</Label>
-                    <Input
-                      id="quantity"
-                      name="quantity"
-                      type="number"
-                      value={productData.quantity}
-                      onChange={handleChange}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantité en stock</Label>
+                  <Input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    value={productData.quantity}
+                    onChange={handleChange}
+                  />
+                </div>
                 )}
                 
                 {productData.product_type === "variable" && (

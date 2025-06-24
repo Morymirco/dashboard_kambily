@@ -1,5 +1,7 @@
+import { API_BASE_URL } from '@/constants'
 import { useApiErrorHandler } from '@/lib/api-interceptor'
 import { ProductsService } from '@/lib/services/products.service'
+import { getAuthHeaders } from '@/lib/auth-utils'
 import type { CreateProductData, UpdateProductData } from '@/lib/types/products'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
@@ -163,6 +165,25 @@ export function useDeleteImages() {
     mutationFn: async (data: any) => {
       try {
         return await ProductsService.deleteImages(data)
+      } catch (error: any) {
+        handleError(error, error.response)
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-detail'] })
+    }
+  })
+}
+
+export function useAddVariantImages() {
+  const queryClient = useQueryClient()
+  const { handleError } = useApiErrorHandler()
+  
+  return useMutation({
+    mutationFn: async ({ variantId, data }: { variantId: string, data: FormData }) => {
+      try {
+        return await ProductsService.addVariantImages(variantId, data)
       } catch (error: any) {
         handleError(error, error.response)
         throw error

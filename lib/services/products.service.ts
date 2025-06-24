@@ -73,5 +73,14 @@ export const ProductsService = {
       }
     });
     return response.data;
+  },
+  addVariantImages : async (variantId: string, data: FormData) => {
+    const response = await API.post(API_ENDPOINTS.products.addVariantImages(variantId), data, {
+      headers: {
+        // Ne pas définir Content-Type pour FormData, laissez axios le gérer
+        'Accept': 'application/json'
+      }
+    });
+    return response.data;
   }
 }
