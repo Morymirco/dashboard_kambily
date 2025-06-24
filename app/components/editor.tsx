@@ -57,7 +57,6 @@ export function Editor({
           `,
           branding: false,
           promotion: false,
-          readonly: readOnly,
           placeholder,
           setup: (editor) => {
             editor.on('init', () => {

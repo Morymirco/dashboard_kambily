@@ -233,6 +233,37 @@ const ProductDetailPage = () => {
     return product.stats_star[key];
   };
 
+  // Fonction utilitaire pour grouper les variantes par attribut principal
+  const groupVariantsByMainAttribute = (variants: any[]) => {
+    const grouped: Record<string, any[]> = {};
+    
+    variants.forEach(variant => {
+      if (variant.attributs && variant.attributs.length > 0) {
+        const mainAttribute = variant.attributs[0];
+        const mainAttributeKey = `${mainAttribute.attribut.nom}: ${mainAttribute.valeur}`;
+        
+        if (!grouped[mainAttributeKey]) {
+          grouped[mainAttributeKey] = [];
+        }
+        grouped[mainAttributeKey].push(variant);
+      }
+    });
+    
+    return grouped;
+  };
+
+  // Fonction pour obtenir les attributs secondaires d'une variante
+  const getSecondaryAttributes = (variant: any) => {
+    if (!variant.attributs || variant.attributs.length <= 1) return [];
+    return variant.attributs.slice(1);
+  };
+
+  // Fonction pour obtenir le nom de l'attribut principal
+  const getMainAttributeName = (variant: any) => {
+    if (!variant.attributs || variant.attributs.length === 0) return "Sans attribut";
+    return variant.attributs[0].attribut.nom;
+  };
+
   return (
     <div className="p-6 dark:bg-black dark:text-gray-100">
       <div className="flex items-center justify-between mb-6">
@@ -513,101 +544,136 @@ const ProductDetailPage = () => {
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="border-b dark:border-gray-800">
-                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Image</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">SKU</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Stock</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {product.variantes.map((variant: any, index: any) => (
-                            <tr 
-                              key={variant.id} 
-                              className={`border-b dark:border-gray-800 hover:bg-muted/50 dark:hover:bg-gray-800/50 ${
-                                index % 2 === 0 ? 'bg-muted/30 dark:bg-gray-900/30' : ''
-                              }`}
-                            >
-                              <td className="px-4 py-3">
-                                <div className="w-12 h-12 rounded-md overflow-hidden bg-muted dark:bg-gray-800">
-                                  {variant.images && variant.images.length > 0 ? (
-                                    <img 
-                                      src={variant.images[0].image} 
-                                      alt={`Variante ${index + 1}`} 
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : product.images && product.images.length > 0 ? (
-                                    <img 
-                                      src={product.images[0].image} 
-                                      alt={`Variante ${index + 1}`} 
-                                      className="w-full h-full object-cover opacity-60"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground dark:text-gray-600">
-                                      <Eye className="h-4 w-4" />
-                                    </div>
-                                  )}
+                    <div className="space-y-6">
+                      {Object.entries(groupVariantsByMainAttribute(product.variantes)).map(([mainAttributeKey, variants]) => {
+                        const mainAttributeName = getMainAttributeName(variants[0]);
+                        const mainAttributeValue = variants[0].attributs[0]?.valeur;
+                        
+                        return (
+                          <div key={mainAttributeKey} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                            {/* En-tête du groupe */}
+                            <div className="bg-muted dark:bg-gray-900 px-4 py-3 border-b dark:border-gray-800">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Badge 
+                                    variant="secondary" 
+                                    className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300"
+                                  >
+                                    {mainAttributeName}
+                                  </Badge>
+                                  <span className="font-medium dark:text-white">{mainAttributeValue}</span>
                                 </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex flex-wrap gap-1">
-                                  {variant.attributs.map((attr: any) => (
-                                    <Badge 
-                                      key={attr.id} 
-                                      variant="outline" 
-                                      className="bg-muted dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                                <span className="text-sm text-muted-foreground dark:text-gray-400">
+                                  {variants.length} variante{variants.length > 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {/* Tableau des variantes du groupe */}
+                            <div className="overflow-x-auto">
+                              <table className="w-full border-collapse">
+                                <thead>
+                                  <tr className="border-b dark:border-gray-800 bg-muted/50 dark:bg-gray-900/50">
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Image</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs secondaires</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">SKU</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Stock</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {variants.map((variant: any, index: any) => (
+                                    <tr 
+                                      key={variant.id} 
+                                      className={`border-b dark:border-gray-800 hover:bg-muted/50 dark:hover:bg-gray-800/50 ${
+                                        index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-muted/30 dark:bg-gray-900/30'
+                                      }`}
                                     >
-                                      {attr.attribut.nom}: {attr.attribut.valeur}
-                                    </Badge>
+                                      <td className="px-4 py-3">
+                                        <div className="w-12 h-12 rounded-md overflow-hidden bg-muted dark:bg-gray-800">
+                                          {variant.images && variant.images.length > 0 ? (
+                                            <img 
+                                              src={variant.images[0].image} 
+                                              alt={`Variante ${index + 1}`} 
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : product.images && product.images.length > 0 ? (
+                                            <img 
+                                              src={product.images[0].image} 
+                                              alt={`Variante ${index + 1}`} 
+                                              className="w-full h-full object-cover opacity-60"
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-muted-foreground dark:text-gray-600">
+                                              <Eye className="h-4 w-4" />
+                                            </div>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex flex-wrap gap-1">
+                                          {getSecondaryAttributes(variant).map((attr: any) => (
+                                            <Badge 
+                                              key={attr.id} 
+                                              variant="outline" 
+                                              className="bg-muted dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                                            >
+                                              {attr.attribut.nom}: {attr.valeur}
+                                            </Badge>
+                                          ))}
+                                          {getSecondaryAttributes(variant).length === 0 && (
+                                            <span className="text-sm text-muted-foreground dark:text-gray-500">
+                                              Aucun attribut secondaire
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-sm dark:text-gray-300">
+                                        {variant.sku || `${product.sku}-V${index + 1}`}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex flex-col">
+                                          <span className="font-medium dark:text-white">{formatPrice(variant.regular_price)}</span>
+                                          {variant.promo_price && Number(variant.promo_price) > 0 && (
+                                            <span className="text-xs line-through text-muted-foreground dark:text-gray-500">
+                                              {formatPrice(variant.promo_price)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Badge 
+                                          className={`${
+                                            variant.quantity > 10 
+                                              ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" 
+                                              : variant.quantity > 0 
+                                              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" 
+                                              : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
+                                          }`}
+                                        >
+                                          {variant.quantity > 0 ? `${variant.quantity} en stock` : "Épuisé"}
+                                        </Badge>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Button 
+                                          variant="ghost" 
+                                          size="sm" 
+                                          className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                          onClick={() => router.push(`/produits/${id}/modifier?variant=${variant.id}`)}
+                                        >
+                                          <Edit className="h-3.5 w-3.5 mr-1" />
+                                          Modifier
+                                        </Button>
+                                      </td>
+                                    </tr>
                                   ))}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm dark:text-gray-300">
-                                {variant.sku || `${product.sku}-V${index + 1}`}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex flex-col">
-                                  <span className="font-medium dark:text-white">{formatPrice(variant.regular_price)}</span>
-                                  {variant.promo_price && Number(variant.promo_price) > 0 && (
-                                    <span className="text-xs line-through text-muted-foreground dark:text-gray-500">
-                                      {formatPrice(variant.promo_price)}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge 
-                                  className={`${
-                                    variant.quantity > 10 
-                                      ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" 
-                                      : variant.quantity > 0 
-                                      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" 
-                                      : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
-                                  }`}
-                                >
-                                  {variant.quantity > 0 ? `${variant.quantity} en stock` : "Épuisé"}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
-                                  onClick={() => router.push(`/produits/${id}/modifier?variant=${variant.id}`)}
-                                >
-                                  <Edit className="h-3.5 w-3.5 mr-1" />
-                                  Modifier
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   
