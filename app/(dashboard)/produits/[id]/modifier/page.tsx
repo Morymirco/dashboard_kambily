@@ -163,6 +163,7 @@ export default function EditProductPage() {
                       id="sku"
                       name="sku"
                       value={productData.sku}
+                      readOnly={true}
                       onChange={handleChange}
                       required
                     />

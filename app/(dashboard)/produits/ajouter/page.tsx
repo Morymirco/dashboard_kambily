@@ -633,6 +633,7 @@ export default function AjouterProduitPage() {
                       <Input
                         id="regular_price"
                         name="regular_price"
+                        readOnly={true}
                         type="number"
                         placeholder="0"
                         className="pl-10"

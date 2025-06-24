@@ -244,6 +244,15 @@ const ProductDetailPage = () => {
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{product.name}</h1>
         </div>
         <div className="flex gap-2">
+          {/* voir le produit */}
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-900"
+            onClick={() => router.push(`https://kambily.com/boutique/${id}`)}
+          >
+            <Eye className="h-4 w-4" />
+            Voir le produit
+          </Button>
           <Button 
             variant="outline" 
             className="flex items-center gap-2 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-900"
