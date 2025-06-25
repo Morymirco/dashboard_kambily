@@ -417,13 +417,10 @@ export default function AjouterProduitPage() {
                     <Label htmlFor="sku">
                       SKU <span className="text-red-500">*</span>
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Le SKU sera généré automatiquement par le système
-                    </p>
                     <Input
                       id="sku"
                       name="sku"
-                      placeholder="SKU-12345"
+                      placeholder="Le SKU sera généré automatiquement par le système"
                       value={productData.sku}
                       onChange={handleChange}
                       readOnly

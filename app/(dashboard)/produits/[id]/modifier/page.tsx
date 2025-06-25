@@ -52,17 +52,17 @@ export default function EditProductPage() {
   useEffect(() => {
     if (product) {
       setProductData({
-        name: product.name,
-        sku: product.sku,
-        regular_price: product.regular_price.toString(),
-        quantity: product.quantity,
-        supplier_price: 0,
-        is_published: true,
-        product_type: product.product_type,
-        is_recommended: false,
-        is_vedette: false,
+        name: product.name || "",
+        sku: product.sku || "",
+        regular_price: product.regular_price?.toString() || "",
+        quantity: product.quantity || 0,
+        supplier_price: (product as any).supplier_price || 0,
+        is_published: (product as any).is_published ?? true,
+        product_type: product.product_type || "simple",
+        is_recommended: (product as any).is_recommended ?? false,
+        is_vedette: (product as any).is_vedette ?? false,
         is_variable: product.product_type === "variable",
-        partenaire: (product as any).partenaire || 0,
+        partenaire: (product as any).partenaire?.id || (product as any).partenaire || 0,
         categories: product.categories?.map((cat: any) => cat.id) || [],
         etiquettes: product.etiquettes?.map((tag: any) => tag.id) || [],
         // images: product.images || [],
@@ -105,7 +105,19 @@ export default function EditProductPage() {
   }
 
   if (isLoading) {
-    return <div>Chargement...</div>
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="h-8 w-8 bg-muted rounded animate-pulse" />
+          <div className="h-8 w-32 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="space-y-6">
+          <div className="h-64 bg-muted rounded animate-pulse" />
+          <div className="h-32 bg-muted rounded animate-pulse" />
+          <div className="h-48 bg-muted rounded animate-pulse" />
+        </div>
+      </div>
+    )
   }
 
   if (!product) {
