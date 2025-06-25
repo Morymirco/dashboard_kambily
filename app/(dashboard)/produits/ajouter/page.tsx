@@ -56,7 +56,6 @@ export default function AjouterProduitPage() {
   const [productData, setProductData] = useState<CreateProductData>({
     name: "",
     sku: "",
-    regular_price: "",
     quantity: 0,
     supplier_price: 0,
     is_published: true,
@@ -235,6 +234,12 @@ export default function AjouterProduitPage() {
           "color: #f59e0b; font-weight: bold;",
         )
         toast.error("Veuillez remplir tous les champs obligatoires")
+        return
+      }
+
+      // Validation du partenaire
+      if (!productData.partenaire || productData.partenaire === 0) {
+        toast.error("Veuillez sélectionner un partenaire")
         return
       }
 
@@ -469,10 +474,10 @@ export default function AjouterProduitPage() {
 
                 <div>
                   <Label htmlFor="partenaire" className="text-base">
-                    Partenaire
+                    Partenaire <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    value={productData.partenaire ? productData.partenaire.toString() : "0"}
+                    value={productData.partenaire ? productData.partenaire.toString() : ""}
                     onValueChange={(value) =>
                       setProductData({
                         ...productData,
@@ -484,7 +489,6 @@ export default function AjouterProduitPage() {
                       <SelectValue placeholder="Sélectionnez un partenaire" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Aucun partenaire</SelectItem>
                       {availablePartners.map((partner) => (
                         <SelectItem key={partner.id} value={partner.id.toString()}>
                           {partner.name}
@@ -613,7 +617,7 @@ export default function AjouterProduitPage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="supplier_price">Prix du fournisseur (GNF)</Label>
+                    <Label htmlFor="supplier_price">Prix du fournisseur (GNF) <span className="text-red-500">*</span></Label>
                     <div className="relative">
                       <CircleDollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                       <Input
@@ -624,29 +628,10 @@ export default function AjouterProduitPage() {
                         className="pl-10"
                         value={productData.supplier_price}
                         onChange={handleChange}
+                        required
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="regular_price">Prix de vente (GNF)</Label>
-                    <div className="relative">
-                      <CircleDollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                      <Input
-                        id="regular_price"
-                        name="regular_price"
-                        type="number"
-                        placeholder="0"
-                        className="pl-10"
-                        value={productData.regular_price}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {productData.product_type !== "variable" && (
                   <div className="space-y-2">
                     <Label htmlFor="quantity">Quantité en stock</Label>
@@ -660,6 +645,11 @@ export default function AjouterProduitPage() {
                     />
                   </div>
                   )}
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="product_type">Type de produit</Label>
                     <Select
@@ -676,15 +666,6 @@ export default function AjouterProduitPage() {
                     </Select>
                   </div>
                 </div>
-                
-                {productData.product_type === "variable" && (
-                  <div className="space-y-2">
-                    <Label>Quantité en stock</Label>
-                    <p className="text-sm text-muted-foreground">
-                      La quantité sera gérée au niveau des variantes du produit
-                    </p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>

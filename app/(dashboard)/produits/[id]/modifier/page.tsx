@@ -84,6 +84,12 @@ export default function EditProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validation du partenaire
+    if (!productData.partenaire || productData.partenaire === 0) {
+      toast.error("Veuillez sélectionner un partenaire")
+      return
+    }
+
     try {
       updateProduct(
         { id, data: productData },
@@ -211,9 +217,9 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="partenaire">Partenaire</Label>
+                  <Label htmlFor="partenaire">Partenaire <span className="text-red-500">*</span></Label>
                   <Select
-                    value={productData.partenaire ? productData.partenaire.toString() : "0"}
+                    value={productData.partenaire ? productData.partenaire.toString() : ""}
                     onValueChange={(value) =>
                       setProductData(prev => ({ ...prev, partenaire: Number.parseInt(value, 10) }))
                     }
@@ -222,7 +228,6 @@ export default function EditProductPage() {
                       <SelectValue placeholder="Sélectionnez un partenaire" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Aucun partenaire</SelectItem>
                       {partnersData?.map((partner: any) => (
                         <SelectItem key={partner.id} value={partner.id.toString()}>
                           {partner.name}

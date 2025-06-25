@@ -31,7 +31,6 @@ export type ProductsResponse = {
 export type CreateProductData = {
   name: string
   sku: string
-  regular_price: string
   quantity: number
   supplier_price: number
   is_published: boolean
