@@ -265,9 +265,16 @@ export default function ProduitsPage() {
                   {/* Informations du produit */}
                   <div className="flex-1">
                     <h3 className="font-semibold">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {product.short_description}
-                    </p>
+                    <div className="text-sm text-muted-foreground line-clamp-2">
+                      {product.short_description ? (
+                        <div 
+                          dangerouslySetInnerHTML={{ __html: product.short_description }} 
+                          className="text-sm text-muted-foreground"
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">Aucune description disponible</span>
+                      )}
+                    </div>
                     <div className="flex items-center space-x-4 mt-2">
                       <span className="font-medium">{product.regular_price} GNF</span>
                       {product.promo_price && (
