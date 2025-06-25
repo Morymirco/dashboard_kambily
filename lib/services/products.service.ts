@@ -82,5 +82,9 @@ export const ProductsService = {
       }
     });
     return response.data;
+  },
+  deleteVariant : async (variantId: string) => {
+    const response = await API.delete(API_ENDPOINTS.products.deleteVariant(variantId));
+    return response.data;
   }
 }

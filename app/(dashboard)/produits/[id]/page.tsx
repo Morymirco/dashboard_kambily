@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getAxiosConfig } from "@/constants/client"
-import { useAddImages, useDeleteImages, useDeleteProduct, useProductDetail } from "@/hooks/api/products"
+import { useAddImages, useDeleteImages, useDeleteProduct, useProductDetail, useDeleteVariant } from "@/hooks/api/products"
 import { ProductAttribute, ProductStats } from "@/lib/types/products"
 import axios from "axios"
 import { Calendar, ChevronLeft, Edit, Eye, Plus, Star, Trash2 } from "lucide-react"
@@ -25,6 +25,7 @@ const ProductDetailPage = () => {
   const { mutate: addImages, isPending: isAddingImages } = useAddImages();
   const { mutate: deleteImages } = useDeleteImages();
   const { mutate: deleteProduct, isPending: isDeletingProduct } = useDeleteProduct();
+  const { mutate: deleteVariant, isPending: isDeletingVariant } = useDeleteVariant();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -233,12 +234,13 @@ const ProductDetailPage = () => {
     return product.stats_star[key];
   };
 
-  // Fonction utilitaire pour grouper les variantes par attribut principal
+  // Fonction pour grouper les variantes par leur attribut principal
   const groupVariantsByMainAttribute = (variants: any[]) => {
     const grouped: Record<string, any[]> = {};
     
     variants.forEach(variant => {
       if (variant.attributs && variant.attributs.length > 0) {
+        // Le premier attribut est l'attribut principal de cette variante
         const mainAttribute = variant.attributs[0];
         const mainAttributeKey = `${mainAttribute.attribut.nom}: ${mainAttribute.valeur}`;
         
@@ -255,6 +257,7 @@ const ProductDetailPage = () => {
   // Fonction pour obtenir les attributs secondaires d'une variante
   const getSecondaryAttributes = (variant: any) => {
     if (!variant.attributs || variant.attributs.length <= 1) return [];
+    // Tous les attributs après le premier sont des attributs secondaires de la même variante
     return variant.attributs.slice(1);
   };
 
@@ -262,6 +265,35 @@ const ProductDetailPage = () => {
   const getMainAttributeName = (variant: any) => {
     if (!variant.attributs || variant.attributs.length === 0) return "Sans attribut";
     return variant.attributs[0].attribut.nom;
+  };
+
+  // Fonction pour obtenir la valeur de l'attribut principal
+  const getMainAttributeValue = (variant: any) => {
+    if (!variant.attributs || variant.attributs.length === 0) return "";
+    return variant.attributs[0].valeur;
+  };
+
+  // Fonction pour formater les attributs secondaires en texte
+  const formatSecondaryAttributes = (variant: any) => {
+    const secondaryAttrs = getSecondaryAttributes(variant);
+    if (secondaryAttrs.length === 0) return "Aucun attribut secondaire";
+    
+    return secondaryAttrs.map((attr: any) => `${attr.attribut.nom}: ${attr.valeur}`).join(", ");
+  };
+
+  // Fonction pour obtenir toutes les variantes uniques (sans doublons)
+  const getUniqueVariants = (variants: any[]) => {
+    const uniqueVariants: any[] = [];
+    const seenIds = new Set();
+    
+    variants.forEach(variant => {
+      if (!seenIds.has(variant.id)) {
+        seenIds.add(variant.id);
+        uniqueVariants.push(variant);
+      }
+    });
+    
+    return uniqueVariants;
   };
 
   return (
@@ -547,7 +579,8 @@ const ProductDetailPage = () => {
                     <div className="space-y-6">
                       {Object.entries(groupVariantsByMainAttribute(product.variantes)).map(([mainAttributeKey, variants]) => {
                         const mainAttributeName = getMainAttributeName(variants[0]);
-                        const mainAttributeValue = variants[0].attributs[0]?.valeur;
+                        const mainAttributeValue = getMainAttributeValue(variants[0]);
+                        const uniqueVariants = getUniqueVariants(variants);
                         
                         return (
                           <div key={mainAttributeKey} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
@@ -564,7 +597,7 @@ const ProductDetailPage = () => {
                                   <span className="font-medium dark:text-white">{mainAttributeValue}</span>
                                 </div>
                                 <span className="text-sm text-muted-foreground dark:text-gray-400">
-                                  {variants.length} variante{variants.length > 1 ? 's' : ''}
+                                  {uniqueVariants.length} variante{uniqueVariants.length > 1 ? 's' : ''}
                                 </span>
                               </div>
                             </div>
@@ -575,16 +608,14 @@ const ProductDetailPage = () => {
                                 <thead>
                                   <tr className="border-b dark:border-gray-800 bg-muted/50 dark:bg-gray-900/50">
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Image</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attribut principal</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs secondaires</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">SKU</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Stock</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {variants.map((variant: any, index: any) => (
+                                  {uniqueVariants.map((variant: any, index: any) => (
                                     <tr 
                                       key={variant.id} 
                                       className={`border-b dark:border-gray-800 hover:bg-muted/50 dark:hover:bg-gray-800/50 ${
@@ -613,29 +644,6 @@ const ProductDetailPage = () => {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3">
-                                        {variant.attributs && variant.attributs.length > 0 ? (
-                                          <div className="flex items-center gap-2">
-                                            <Badge 
-                                              variant="outline" 
-                                              className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300 cursor-pointer hover:bg-primary/20 dark:hover:bg-blue-900/70 transition-colors group"
-                                              style={variant.attributs[0].hex_code ? { 
-                                                backgroundColor: variant.attributs[0].hex_code, 
-                                                color: 'white',
-                                                borderColor: variant.attributs[0].hex_code
-                                              } : {}}
-                                              onClick={() => router.push(`/produits/${id}/variante/${variant.id}`)}
-                                            >
-                                              {variant.attributs[0].attribut.nom}: {variant.attributs[0].valeur}
-                                              <Eye className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </Badge>
-                                          </div>
-                                        ) : (
-                                          <span className="text-sm text-muted-foreground dark:text-gray-500">
-                                            Aucun attribut principal
-                                          </span>
-                                        )}
-                                      </td>
-                                      <td className="px-4 py-3">
                                         <div className="flex flex-wrap gap-1">
                                           {getSecondaryAttributes(variant).map((attr: any) => (
                                             <Badge 
@@ -657,9 +665,6 @@ const ProductDetailPage = () => {
                                             </span>
                                           )}
                                         </div>
-                                      </td>
-                                      <td className="px-4 py-3 text-sm dark:text-gray-300">
-                                        {variant.sku || `${product.sku}-V${index + 1}`}
                                       </td>
                                       <td className="px-4 py-3">
                                         <div className="flex flex-col">

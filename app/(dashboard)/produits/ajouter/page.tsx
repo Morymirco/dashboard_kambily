@@ -81,6 +81,9 @@ export default function AjouterProduitPage() {
   const [availablePartners, setAvailablePartners] = useState<any[]>([])
   const [availableAttributes, setAvailableAttributes] = useState<any[]>([])
 
+  // État pour les erreurs de validation
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+
   // Mettre à jour les états quand les données sont chargées
   useEffect(() => {
     if (categoriesData) {
@@ -282,8 +285,23 @@ export default function AjouterProduitPage() {
             "color: #ef4444; font-weight: bold;",
             error,
           )
-          setError(error.message || "Une erreur est survenue lors de l'ajout du produit")
-          toast.error("Une erreur est survenue lors de l'ajout du produit")
+          
+          // Gérer les erreurs de validation de l'API
+          if (error.response?.data) {
+            const apiErrors = error.response.data
+            setValidationErrors(apiErrors)
+            
+            // Afficher le premier message d'erreur dans le toast
+            const firstError = Object.values(apiErrors)[0]
+            if (Array.isArray(firstError) && firstError.length > 0) {
+              toast.error(firstError[0])
+            } else {
+              toast.error("Erreur de validation du formulaire")
+            }
+          } else {
+            setError(error.message || "Une erreur est survenue lors de l'ajout du produit")
+            toast.error("Une erreur est survenue lors de l'ajout du produit")
+          }
         }
       })
 
@@ -485,7 +503,7 @@ export default function AjouterProduitPage() {
                       })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={validationErrors.partenaire ? "border-red-500" : ""}>
                       <SelectValue placeholder="Sélectionnez un partenaire" />
                     </SelectTrigger>
                     <SelectContent>
@@ -496,6 +514,9 @@ export default function AjouterProduitPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {validationErrors.partenaire && (
+                    <p className="text-sm text-red-500 mt-1">{validationErrors.partenaire[0]}</p>
+                  )}
                 </div>
 
                 <Separator />
@@ -689,10 +710,10 @@ export default function AjouterProduitPage() {
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         <Package className="w-5 h-5 text-gray-500" />
-                        <h3 className="font-medium">Catégories</h3>
+                        <h3 className="font-medium">Catégories <span className="text-red-500">*</span></h3>
                       </div>
 
-                      <ScrollArea className="h-64 border rounded-lg p-4 bg-muted/50">
+                      <ScrollArea className={`h-64 border rounded-lg p-4 bg-muted/50 ${validationErrors.categories ? "border-red-500" : ""}`}>
                         <div className="space-y-2">
                           {availableCategories.length === 0 ? (
                             <p className="text-sm text-gray-500 italic">Aucune catégorie disponible</p>
@@ -703,6 +724,10 @@ export default function AjouterProduitPage() {
                           )}
                         </div>
                       </ScrollArea>
+
+                      {validationErrors.categories && (
+                        <p className="text-sm text-red-500">{validationErrors.categories[0]}</p>
+                      )}
 
                       <div className="flex flex-wrap gap-2 mt-2">
                         {productData.categories.map((categoryId) => {
@@ -795,6 +820,27 @@ export default function AjouterProduitPage() {
       {error && (
         <Alert variant="destructive" className="mt-6">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Affichage des erreurs de validation */}
+      {Object.keys(validationErrors).length > 0 && (
+        <Alert variant="destructive" className="mt-6">
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Erreurs de validation :</p>
+              {Object.entries(validationErrors).map(([field, errors]) => (
+                <div key={field} className="ml-4">
+                  <p className="font-medium capitalize">{field} :</p>
+                  <ul className="ml-4 list-disc">
+                    {Array.isArray(errors) && errors.map((error, index) => (
+                      <li key={index} className="text-sm">{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
         </Alert>
       )}
     </div>

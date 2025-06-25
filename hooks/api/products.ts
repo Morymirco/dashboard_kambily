@@ -194,3 +194,22 @@ export function useAddVariantImages() {
     }
   })
 }
+
+export function useDeleteVariant() {
+  const queryClient = useQueryClient()
+  const { handleError } = useApiErrorHandler()
+  
+  return useMutation({
+    mutationFn: async (variantId: string) => {
+      try {
+        return await ProductsService.deleteVariant(variantId)
+      } catch (error: any) {
+        handleError(error, error.response)
+        throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-detail'] })
+    }
+  })
+}
