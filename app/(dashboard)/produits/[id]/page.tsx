@@ -230,47 +230,100 @@ const ProductDetailPage = () => {
   }
 
   const getStarCount = (star: number): number => {
+    if (!product?.stats_star) return 0;
     const key = `${star}_star` as keyof ProductStats;
-    return product.stats_star[key];
+    return product.stats_star[key] || 0;
   };
 
   // Fonction pour grouper les variantes par leur attribut principal
-  const groupVariantsByMainAttribute = (variants: any[]) => {
+  const groupVariantsByMainAttribute = (variants: any) => {
+    // Si variants est un objet avec des clés (nouveau format)
+    if (typeof variants === 'object' && !Array.isArray(variants)) {
+      const grouped: Record<string, any[]> = {};
+      
+      // Parcourir chaque clé principale (size, color, etc.)
+      Object.entries(variants).forEach(([variantType, variantArray]) => {
+        if (Array.isArray(variantArray)) {
+          variantArray.forEach((variant) => {
+            if (variant.main_attribut) {
+              // Utiliser le type de variante comme préfixe pour une meilleure organisation
+              const mainAttributeKey = `${variantType.toUpperCase()}: ${variant.main_attribut.valeur}`;
+              
+              if (!grouped[mainAttributeKey]) {
+                grouped[mainAttributeKey] = [];
+              }
+              grouped[mainAttributeKey].push(variant);
+            }
+          });
+        }
+      });
+      
+      return grouped;
+    }
+    
+    // Fallback pour l'ancien format (tableau)
     const grouped: Record<string, any[]> = {};
     
-    variants.forEach(variant => {
-      if (variant.attributs && variant.attributs.length > 0) {
-        // Le premier attribut est l'attribut principal de cette variante
-        const mainAttribute = variant.attributs[0];
-        const mainAttributeKey = `${mainAttribute.attribut.nom}: ${mainAttribute.valeur}`;
-        
-        if (!grouped[mainAttributeKey]) {
-          grouped[mainAttributeKey] = [];
+    if (Array.isArray(variants)) {
+      variants.forEach(variant => {
+        if (variant.attributs && variant.attributs.length > 0) {
+          const mainAttribute = variant.attributs[0];
+          const mainAttributeKey = `${mainAttribute.attribut.nom}: ${mainAttribute.valeur}`;
+          
+          if (!grouped[mainAttributeKey]) {
+            grouped[mainAttributeKey] = [];
+          }
+          grouped[mainAttributeKey].push(variant);
         }
-        grouped[mainAttributeKey].push(variant);
-      }
-    });
+      });
+    }
     
     return grouped;
   };
 
   // Fonction pour obtenir les attributs secondaires d'une variante
   const getSecondaryAttributes = (variant: any) => {
-    if (!variant.attributs || variant.attributs.length <= 1) return [];
-    // Tous les attributs après le premier sont des attributs secondaires de la même variante
-    return variant.attributs.slice(1);
+    // Nouveau format : utiliser attributs directement
+    if (variant.attributs && Array.isArray(variant.attributs)) {
+      if (variant.attributs.length <= 1) return [];
+      return variant.attributs.slice(1);
+    }
+    return [];
   };
 
   // Fonction pour obtenir le nom de l'attribut principal
-  const getMainAttributeName = (variant: any) => {
-    if (!variant.attributs || variant.attributs.length === 0) return "Sans attribut";
-    return variant.attributs[0].attribut.nom;
+  const getMainAttributeName = (variant: any, variantType?: string) => {
+    // Si on a le type de variante, l'utiliser en priorité
+    if (variantType) {
+      return variantType.charAt(0).toUpperCase() + variantType.slice(1);
+    }
+    
+    // Nouveau format : utiliser main_attribut
+    if (variant.main_attribut) {
+      return variant.main_attribut.attribut.nom.charAt(0).toUpperCase() + variant.main_attribut.attribut.nom.slice(1);
+    }
+    
+    // Fallback pour l'ancien format
+    if (variant.attributs && variant.attributs.length > 0) {
+      return variant.attributs[0].attribut.nom.charAt(0).toUpperCase() + variant.attributs[0].attribut.nom.slice(1);
+    }
+    
+    return "Sans attribut";
   };
 
   // Fonction pour obtenir la valeur de l'attribut principal
   const getMainAttributeValue = (variant: any) => {
-    if (!variant.attributs || variant.attributs.length === 0) return "";
-    return variant.attributs[0].valeur;
+    // Nouveau format : utiliser main_attribut
+    if (variant.main_attribut) {
+      return variant.main_attribut.valeur;
+    }
+    
+    // Fallback pour l'ancien format
+    if (variant.attributs && variant.attributs.length > 0) {
+      return variant.attributs[0].valeur;
+    }
+    
+    return "";
   };
 
   // Fonction pour formater les attributs secondaires en texte
@@ -296,6 +349,52 @@ const ProductDetailPage = () => {
     return uniqueVariants;
   };
 
+  // Fonction pour obtenir un résumé des attributs secondaires d'un groupe
+  const getSecondaryAttributesSummary = (variants: any[]) => {
+    if (variants.length === 0) return "Aucun attribut secondaire";
+    
+    // Prendre la première variante comme référence pour les attributs secondaires
+    const firstVariant = variants[0];
+    const secondaryAttrs = getSecondaryAttributes(firstVariant);
+    
+    if (secondaryAttrs.length === 0) return "Aucun attribut secondaire";
+    
+    return secondaryAttrs.map((attr: any) => `${attr.attribut.nom}: ${attr.valeur}`).join(", ");
+  };
+
+  // Fonction pour obtenir le nombre total de variantes
+  const getTotalVariantsCount = (variants: any) => {
+    if (typeof variants === 'object' && !Array.isArray(variants)) {
+      // Nouveau format : compter toutes les variantes dans toutes les clés
+      return Object.values(variants).reduce((total: number, variantArray: any) => {
+        return total + (Array.isArray(variantArray) ? variantArray.length : 0);
+      }, 0);
+    }
+    
+    // Fallback pour l'ancien format
+    return Array.isArray(variants) ? variants.length : 0;
+  };
+
+  // Fonction pour obtenir les types de variantes disponibles
+  const getVariantTypes = (variants: any) => {
+    if (typeof variants === 'object' && !Array.isArray(variants)) {
+      return Object.keys(variants);
+    }
+    return [];
+  };
+
+  // Fonction pour obtenir le nombre de variantes par type
+  const getVariantsCountByType = (variants: any) => {
+    if (typeof variants === 'object' && !Array.isArray(variants)) {
+      const counts: Record<string, number> = {};
+      Object.entries(variants).forEach(([type, variantArray]) => {
+        counts[type] = Array.isArray(variantArray) ? variantArray.length : 0;
+      });
+      return counts;
+    }
+    return {};
+  };
+
   return (
     <div className="p-6 dark:bg-black dark:text-gray-100">
       <div className="flex items-center justify-between mb-6">
@@ -304,7 +403,7 @@ const ProductDetailPage = () => {
             className="dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-900">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{product.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{product?.name}</h1>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -330,7 +429,7 @@ const ProductDetailPage = () => {
         <div className="md:col-span-2">
           <Card className="overflow-hidden border-gray-200 dark:border-gray-800 dark:bg-gray-900">
             <div className="aspect-video bg-gray-100 dark:bg-black relative">
-              {product.images && product.images.length > 0 ? (
+              {product?.images && product.images.length > 0 ? (
                 <img
                   src={product.images[selectedImageIndex]?.image || "/placeholder.svg"}
                   alt={product.name}
@@ -342,7 +441,7 @@ const ProductDetailPage = () => {
                 </div>
               )}
             </div>
-            {product.images && product.images.length > 1 && (
+            {product?.images && product.images.length > 1 && (
               <div className="p-4 flex gap-2 overflow-x-auto dark:bg-gray-900">
                 {product.images.map((image, index) => (
                   <div
@@ -376,9 +475,9 @@ const ProductDetailPage = () => {
                 </div>
               </div>
             )}
-            {(!product.images || product.images.length <= 1) && (
+            {(!product?.images || product.images.length <= 1) && (
               <div className="p-4 flex gap-2 overflow-x-auto dark:bg-gray-900">
-                {product.images && product.images.length === 1 && (
+                {product?.images && product.images.length === 1 && (
                   <div
                     className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 relative group ${
                       selectedImageIndex === 0 ? "border-primary dark:border-blue-500" : "border-transparent"
@@ -422,8 +521,8 @@ const ProductDetailPage = () => {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</p>
                   <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold dark:text-white">{formatPrice(product.regular_price)}</p>
-                    {product.promo_price && Number(product.promo_price) > 0 && (
+                    <p className="text-2xl font-bold dark:text-white">{formatPrice(product?.regular_price || 0)}</p>
+                    {product?.promo_price && Number(product.promo_price) > 0 && (
                       <p className="text-lg line-through text-muted-foreground dark:text-gray-500">{formatPrice(product.promo_price)}</p>
                     )}
                   </div>
@@ -431,7 +530,7 @@ const ProductDetailPage = () => {
 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">SKU</p>
-                  <p className="font-medium dark:text-gray-200">{product.sku}</p>
+                  <p className="font-medium dark:text-gray-200">{product?.sku}</p>
                 </div>
 
                 <div>
@@ -439,23 +538,23 @@ const ProductDetailPage = () => {
                   <div className="flex items-center gap-2">
                     <Badge 
                       className={`${
-                        product.etat_stock === "En Stock" 
+                        product?.etat_stock === "En Stock" 
                           ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" 
-                          : product.etat_stock === "Stock faible" 
+                          : product?.etat_stock === "Stock faible" 
                           ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" 
                           : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
                       }`}
                     >
-                      {product.etat_stock}
+                      {product?.etat_stock}
                     </Badge>
-                    <span className="text-gray-600 dark:text-gray-300">{product.quantity} unités</span>
+                    <span className="text-gray-600 dark:text-gray-300">{product?.quantity} unités</span>
                   </div>
                 </div>
 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Catégories</p>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {product.categories.map((category) => (
+                    {product?.categories?.map((category) => (
                       <Badge key={category.id} variant="outline" className="bg-muted dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
                         {category.name}
                       </Badge>
@@ -467,12 +566,12 @@ const ProductDetailPage = () => {
                   <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Type de produit</p>
                   <Badge 
                     className={`${
-                      product.product_type === "variable" 
+                      product?.product_type === "variable" 
                         ? "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300" 
                         : "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"
                     }`}
                   >
-                    {product.product_type === "variable" ? "Variable" : "Simple"}
+                    {product?.product_type === "variable" ? "Variable" : "Simple"}
                   </Badge>
                 </div>
 
@@ -480,7 +579,7 @@ const ProductDetailPage = () => {
                   <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Date de création</p>
                   <p className="font-medium flex items-center gap-1 dark:text-gray-300">
                     <Calendar className="h-3 w-3 text-muted-foreground dark:text-gray-500" />
-                    {new Date(product.created_at).toLocaleDateString("fr-FR", {
+                    {product?.created_at && new Date(product.created_at).toLocaleDateString("fr-FR", {
                       day: "2-digit",
                       month: "long",
                       year: "numeric",
@@ -499,7 +598,12 @@ const ProductDetailPage = () => {
             <TabsTrigger value="details" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white dark:text-gray-400">Description</TabsTrigger>
             {product.product_type === "variable" && (
               <TabsTrigger value="variants" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white dark:text-gray-400">
-                Variantes ({product.variantes.length})
+                Variantes ({getTotalVariantsCount(product?.variantes || {})})
+                {getVariantTypes(product?.variantes || {}).length > 0 && (
+                  <span className="ml-1 text-xs opacity-70">
+                    [{getVariantTypes(product?.variantes || {}).join(", ")}]
+                  </span>
+                )}
               </TabsTrigger>
             )}
             <TabsTrigger value="reviews" className="dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-white dark:text-gray-400">
@@ -564,10 +668,19 @@ const ProductDetailPage = () => {
                   <CardTitle className="dark:text-white">Variantes du produit</CardTitle>
                   <CardDescription className="dark:text-gray-400">
                     Liste des différentes configurations disponibles pour ce produit
+                    {getVariantTypes(product?.variantes || {}).length > 0 && (
+                      <span className="block mt-1">
+                        Types disponibles : {getVariantTypes(product?.variantes || {}).map(type => 
+                          <Badge key={type} variant="outline" className="ml-1 text-xs">
+                            {type.charAt(0).toUpperCase() + type.slice(1)} ({getVariantsCountByType(product?.variantes || {})[type] || 0})
+                          </Badge>
+                        )}
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {product.variantes.length === 0 ? (
+                  {!product?.variantes || getTotalVariantsCount(product.variantes) === 0 ? (
                     <div className="text-center p-8 bg-muted dark:bg-black rounded-lg border border-gray-200 dark:border-gray-800">
                       <div className="text-muted-foreground dark:text-gray-600 mx-auto mb-4 text-4xl">🔍</div>
                       <p className="text-muted-foreground dark:text-gray-400">Aucune variante disponible pour ce produit</p>
@@ -578,9 +691,10 @@ const ProductDetailPage = () => {
                   ) : (
                     <div className="space-y-6">
                       {Object.entries(groupVariantsByMainAttribute(product.variantes)).map(([mainAttributeKey, variants]) => {
-                        const mainAttributeName = getMainAttributeName(variants[0]);
+                        const variantType = mainAttributeKey.split(": ")[0].toLowerCase();
                         const mainAttributeValue = getMainAttributeValue(variants[0]);
                         const uniqueVariants = getUniqueVariants(variants);
+                        const secondarySummary = getSecondaryAttributesSummary(variants);
                         
                         return (
                           <div key={mainAttributeKey} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
@@ -592,9 +706,14 @@ const ProductDetailPage = () => {
                                     variant="secondary" 
                                     className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300"
                                   >
-                                    {mainAttributeName}
+                                    {variantType.charAt(0).toUpperCase() + variantType.slice(1)}
                                   </Badge>
                                   <span className="font-medium dark:text-white">{mainAttributeValue}</span>
+                                  {secondarySummary !== "Aucun attribut secondaire" && (
+                                    <span className="text-sm text-muted-foreground dark:text-gray-400">
+                                      ({secondarySummary})
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="text-sm text-muted-foreground dark:text-gray-400">
                                   {uniqueVariants.length} variante{uniqueVariants.length > 1 ? 's' : ''}
@@ -608,7 +727,6 @@ const ProductDetailPage = () => {
                                 <thead>
                                   <tr className="border-b dark:border-gray-800 bg-muted/50 dark:bg-gray-900/50">
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Image</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs secondaires</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Stock</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Actions</th>
@@ -630,7 +748,7 @@ const ProductDetailPage = () => {
                                               alt={`Variante ${index + 1}`} 
                                               className="w-full h-full object-cover"
                                             />
-                                          ) : product.images && product.images.length > 0 ? (
+                                          ) : product?.images && product.images.length > 0 ? (
                                             <img 
                                               src={product.images[0].image} 
                                               alt={`Variante ${index + 1}`} 
@@ -640,29 +758,6 @@ const ProductDetailPage = () => {
                                             <div className="w-full h-full flex items-center justify-center text-muted-foreground dark:text-gray-600">
                                               <Eye className="h-4 w-4" />
                                             </div>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-3">
-                                        <div className="flex flex-wrap gap-1">
-                                          {getSecondaryAttributes(variant).map((attr: any) => (
-                                            <Badge 
-                                              key={attr.id} 
-                                              variant="outline" 
-                                              className="bg-muted dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-                                              style={attr.hex_code ? { 
-                                                backgroundColor: attr.hex_code, 
-                                                color: 'white',
-                                                borderColor: attr.hex_code
-                                              } : {}}
-                                            >
-                                              {attr.attribut.nom}: {attr.valeur}
-                                            </Badge>
-                                          ))}
-                                          {getSecondaryAttributes(variant).length === 0 && (
-                                            <span className="text-sm text-muted-foreground dark:text-gray-500">
-                                              Aucun attribut secondaire
-                                            </span>
                                           )}
                                         </div>
                                       </td>
@@ -751,7 +846,7 @@ const ProductDetailPage = () => {
                     <CardDescription className="dark:text-gray-400">Commentaires et évaluations des clients</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    {product.reviews.length === 0 ? (
+                    {!product?.reviews || product.reviews.length === 0 ? (
                       <div className="text-center p-8 bg-muted dark:bg-black rounded-lg border border-gray-200 dark:border-gray-800">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -835,20 +930,20 @@ const ProductDetailPage = () => {
                   </CardHeader>
                   <CardContent className="pt-4">
                     <div className="text-center mb-4">
-                      <p className="text-3xl font-bold dark:text-white">{product.stats_star.average_rating.toFixed(1)}</p>
+                      <p className="text-3xl font-bold dark:text-white">{product?.stats_star?.average_rating?.toFixed(1) || "0.0"}</p>
                       <div className="flex items-center justify-center my-2">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
                             className={`h-5 w-5 ${
-                              star <= Math.round(product.stats_star.average_rating)
+                              star <= Math.round(product?.stats_star?.average_rating || 0)
                                 ? "text-yellow-400 fill-yellow-400"
                                 : "text-gray-300 dark:text-gray-700"
                             }`}
                           />
                         ))}
                       </div>
-                      <p className="text-sm text-muted-foreground dark:text-gray-400">{product.stats_star.total_reviews} avis</p>
+                      <p className="text-sm text-muted-foreground dark:text-gray-400">{product?.stats_star?.total_reviews || 0} avis</p>
                     </div>
 
                     <div className="mt-6">
@@ -863,7 +958,7 @@ const ProductDetailPage = () => {
                               <div
                                 className="h-full bg-yellow-400"
                                 style={{
-                                  width: `${(getStarCount(star) / Math.max(1, product.stats_star.total_reviews)) * 100}%`,
+                                  width: `${(getStarCount(star) / Math.max(1, product?.stats_star?.total_reviews || 0)) * 100}%`,
                                 }}
                               ></div>
                             </div>
