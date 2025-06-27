@@ -20,6 +20,7 @@ interface Variant {
   attributs: number[]
   quantities: number[] // Quantité par ID d'attribut en tableau
   promo_price: string
+  supplier_price: string
 }
 
 interface AttributeValue {
@@ -120,7 +121,8 @@ export default function AddVariantesPage() {
         main_attribut: mainAttributValue,
         attributs: secondaryAttributes,
         quantities: quantities,
-        promo_price: variant.promo_price
+        promo_price: variant.promo_price,
+        supplier_price: variant.supplier_price
       }
     })
 
@@ -264,7 +266,8 @@ export default function AddVariantesPage() {
                             main_attribut: parseInt(value),
                             attributs: [],
                             quantities: [],
-                            promo_price: ""
+                            promo_price: "",
+                            supplier_price: ""
                           }
                           setVariants(newVariants)
                         }}
@@ -323,7 +326,7 @@ export default function AddVariantesPage() {
                     )}
 
                     {/* Prix */}
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor={`promo-price-${index}`}>
                           Prix promotionnel <span className="text-red-500">*</span>
@@ -338,6 +341,26 @@ export default function AddVariantesPage() {
                             newVariants[index] = {
                               ...newVariants[index],
                               promo_price: e.target.value
+                            }
+                            setVariants(newVariants)
+                          }}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`supplier-price-${index}`}>
+                          Prix du fournisseur <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id={`supplier-price-${index}`}
+                          type="number"
+                          placeholder="0"
+                          value={variant.supplier_price || ""}
+                          onChange={(e) => {
+                            const newVariants = [...variants]
+                            newVariants[index] = {
+                              ...newVariants[index],
+                              supplier_price: e.target.value
                             }
                             setVariants(newVariants)
                           }}
@@ -468,7 +491,8 @@ export default function AddVariantesPage() {
                       main_attribut: 0,
                       attributs: [],
                       quantities: [],
-                      promo_price: ""
+                      promo_price: "",
+                      supplier_price: ""
                     }
                   ])
                 }}
