@@ -242,11 +242,38 @@ const ProductDetailPage = () => {
       const grouped: Record<string, any[]> = {};
       
       // Parcourir chaque clé principale (size, color, etc.)
-      Object.entries(variants).forEach(([variantType, variantArray]) => {
-        if (Array.isArray(variantArray)) {
-          variantArray.forEach((variant) => {
+      Object.entries(variants).forEach(([variantType, variantData]) => {
+        // Nouveau format : variantData est un objet avec une propriété items
+        if (typeof variantData === 'object' && variantData.items && Array.isArray(variantData.items)) {
+          // Grouper les items par leur main_attribut.valeur
+          const itemsByMainAttribute: Record<string, any[]> = {};
+          
+          variantData.items.forEach((item) => {
+            if (item.main_attribut) {
+              const mainAttributeValue = item.main_attribut.valeur;
+              
+              if (!itemsByMainAttribute[mainAttributeValue]) {
+                itemsByMainAttribute[mainAttributeValue] = [];
+              }
+              itemsByMainAttribute[mainAttributeValue].push(item);
+            }
+          });
+          
+          // Créer un groupe pour chaque valeur d'attribut principal
+          Object.entries(itemsByMainAttribute).forEach(([mainAttributeValue, items]) => {
+            const mainAttributeKey = `${variantType.toUpperCase()}: ${mainAttributeValue}`;
+            
+            if (!grouped[mainAttributeKey]) {
+              grouped[mainAttributeKey] = [];
+            }
+            // Ajouter tous les items individuels (pas de consolidation)
+            grouped[mainAttributeKey].push(...items);
+          });
+        }
+        // Ancien format : variantData est directement un tableau
+        else if (Array.isArray(variantData)) {
+          variantData.forEach((variant) => {
             if (variant.main_attribut) {
-              // Utiliser le type de variante comme préfixe pour une meilleure organisation
               const mainAttributeKey = `${variantType.toUpperCase()}: ${variant.main_attribut.valeur}`;
               
               if (!grouped[mainAttributeKey]) {
@@ -365,9 +392,24 @@ const ProductDetailPage = () => {
   // Fonction pour obtenir le nombre total de variantes
   const getTotalVariantsCount = (variants: any) => {
     if (typeof variants === 'object' && !Array.isArray(variants)) {
-      // Nouveau format : compter toutes les variantes dans toutes les clés
-      return Object.values(variants).reduce((total: number, variantArray: any) => {
-        return total + (Array.isArray(variantArray) ? variantArray.length : 0);
+      // Nouveau format : compter les variantes uniques par main_attribut
+      return Object.values(variants).reduce((total: number, variantData: any) => {
+        // Nouveau format : variantData est un objet avec une propriété items
+        if (typeof variantData === 'object' && variantData.items && Array.isArray(variantData.items)) {
+          // Grouper par main_attribut pour compter les variantes uniques
+          const uniqueMainAttributes = new Set();
+          variantData.items.forEach((item) => {
+            if (item.main_attribut) {
+              uniqueMainAttributes.add(item.main_attribut.valeur);
+            }
+          });
+          return total + uniqueMainAttributes.size;
+        }
+        // Ancien format : variantData est directement un tableau
+        else if (Array.isArray(variantData)) {
+          return total + variantData.length;
+        }
+        return total;
       }, 0);
     }
     
@@ -387,8 +429,25 @@ const ProductDetailPage = () => {
   const getVariantsCountByType = (variants: any) => {
     if (typeof variants === 'object' && !Array.isArray(variants)) {
       const counts: Record<string, number> = {};
-      Object.entries(variants).forEach(([type, variantArray]) => {
-        counts[type] = Array.isArray(variantArray) ? variantArray.length : 0;
+      Object.entries(variants).forEach(([type, variantData]) => {
+        // Nouveau format : variantData est un objet avec une propriété items
+        if (typeof variantData === 'object' && variantData.items && Array.isArray(variantData.items)) {
+          // Compter les variantes uniques par main_attribut
+          const uniqueMainAttributes = new Set();
+          variantData.items.forEach((item) => {
+            if (item.main_attribut) {
+              uniqueMainAttributes.add(item.main_attribut.valeur);
+            }
+          });
+          counts[type] = uniqueMainAttributes.size;
+        }
+        // Ancien format : variantData est directement un tableau
+        else if (Array.isArray(variantData)) {
+          counts[type] = variantData.length;
+        }
+        else {
+          counts[type] = 0;
+        }
       });
       return counts;
     }
@@ -696,6 +755,13 @@ const ProductDetailPage = () => {
                         const uniqueVariants = getUniqueVariants(variants);
                         const secondarySummary = getSecondaryAttributesSummary(variants);
                         
+                        // Calculer dynamiquement le nombre d'attributs secondaires
+                        // Prendre le maximum d'attributs secondaires parmi toutes les variantes du groupe
+                        const maxSecondaryAttributesCount = variants.reduce((max, variant) => {
+                          const currentCount = variant.attributs ? variant.attributs.length : 0;
+                          return Math.max(max, currentCount);
+                        }, 0);
+                        
                         return (
                           <div key={mainAttributeKey} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
                             {/* En-tête du groupe */}
@@ -709,15 +775,32 @@ const ProductDetailPage = () => {
                                     {variantType.charAt(0).toUpperCase() + variantType.slice(1)}
                                   </Badge>
                                   <span className="font-medium dark:text-white">{mainAttributeValue}</span>
-                                  {secondarySummary !== "Aucun attribut secondaire" && (
-                                    <span className="text-sm text-muted-foreground dark:text-gray-400">
-                                      ({secondarySummary})
-                                    </span>
-                                  )}
+                                  <span className="text-sm text-muted-foreground dark:text-gray-400">
+                                    (Première variante - {maxSecondaryAttributesCount} attribut{maxSecondaryAttributesCount > 1 ? 's' : ''} secondaire{maxSecondaryAttributesCount > 1 ? 's' : ''})
+                                  </span>
                                 </div>
-                                <span className="text-sm text-muted-foreground dark:text-gray-400">
-                                  {uniqueVariants.length} variante{uniqueVariants.length > 1 ? 's' : ''}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex gap-1">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                      onClick={() => router.push(`/produits/${id}/variante/${uniqueVariants[0].id}`)}
+                                    >
+                                      <Eye className="h-3.5 w-3.5 mr-1" />
+                                      Voir
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                      onClick={() => router.push(`/produits/${id}/variante/${uniqueVariants[0].id}`)}
+                                    >
+                                      <Edit className="h-3.5 w-3.5 mr-1" />
+                                      Modifier
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                             
@@ -729,7 +812,7 @@ const ProductDetailPage = () => {
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Image</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Prix</th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Stock</th>
-                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Actions</th>
+                                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -774,27 +857,37 @@ const ProductDetailPage = () => {
                                       <td className="px-4 py-3">
                                         <Badge 
                                           className={`${
-                                            variant.quantity > 10 
+                                            (variant.total_quantity || variant.quantity) > 10 
                                               ? "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" 
-                                              : variant.quantity > 0 
+                                              : (variant.total_quantity || variant.quantity) > 0 
                                               ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300" 
                                               : "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
                                           }`}
                                         >
-                                          {variant.quantity > 0 ? `${variant.quantity} en stock` : "Épuisé"}
+                                          {(variant.total_quantity || variant.quantity) > 0 ? `${variant.total_quantity || variant.quantity} en stock` : "Épuisé"}
                                         </Badge>
                                       </td>
                                       <td className="px-4 py-3">
-                                        <div className="flex gap-1">
-                                          <Button 
-                                            variant="ghost" 
-                                            size="sm" 
-                                            className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
-                                            onClick={() => router.push(`/produits/${id}/modifier?variant=${variant.id}`)}
-                                          >
-                                            <Edit className="h-3.5 w-3.5 mr-1" />
-                                            Modifier
-                                          </Button>
+                                        <div className="flex flex-wrap gap-1">
+                                          {variant.attributs && variant.attributs.length > 0 ? (
+                                            variant.attributs.map((attr: any, attrIndex: number) => (
+                                              <Badge 
+                                                key={attrIndex} 
+                                                variant="outline" 
+                                                className={`text-xs ${
+                                                  attrIndex === 0 
+                                                    ? "bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700" 
+                                                    : "bg-muted/50 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700"
+                                                }`}
+                                              >
+                                                {attr.attribut.nom}: {attr.valeur}
+                                              </Badge>
+                                            ))
+                                          ) : (
+                                            <span className="text-xs text-muted-foreground dark:text-gray-500">
+                                              Aucun attribut
+                                            </span>
+                                          )}
                                         </div>
                                       </td>
                                     </tr>

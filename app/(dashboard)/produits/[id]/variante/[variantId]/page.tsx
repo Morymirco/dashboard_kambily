@@ -17,6 +17,19 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 
 interface Variant {
   id: number
+  main_attribut: {
+    id: number
+    attribut: {
+      id: number
+      nom: string
+      created_at: string
+      updated_at: string
+    }
+    valeur: string
+    hex_code: string | null
+    created_at: string
+    updated_at: string
+  }
   attributs: Array<{
     id: number
     attribut: {
@@ -43,6 +56,7 @@ interface Variant {
   nombre_ventes: number
   created_at: string
   updated_at: string
+  product: number
 }
 
 export default function VariantDetailPage() {
@@ -323,10 +337,30 @@ export default function VariantDetailPage() {
               Variante de {product.name}
             </h1>
             <p className="text-muted-foreground dark:text-gray-400">
-              {variant.attributs && variant.attributs.length > 0 
-                ? `Attributs: ${formatAttributes(variant.attributs)}`
-                : 'Détails de la variante et ses attributs'
-              }
+              {variant.main_attribut ? (
+                <span className="flex items-center gap-2">
+                  <Badge 
+                    variant="secondary" 
+                    className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300"
+                    style={variant.main_attribut.hex_code ? { 
+                      backgroundColor: variant.main_attribut.hex_code, 
+                      color: 'white',
+                      borderColor: variant.main_attribut.hex_code
+                    } : {}}
+                  >
+                    {variant.main_attribut.attribut.nom}: {variant.main_attribut.valeur}
+                  </Badge>
+                  {variant.attributs && variant.attributs.length > 0 && (
+                    <span className="text-sm">
+                      ({formatAttributes(variant.attributs)})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                variant.attributs && variant.attributs.length > 0 
+                  ? `Attributs: ${formatAttributes(variant.attributs)}`
+                  : 'Détails de la variante et ses attributs'
+              )}
             </p>
           </div>
         </div>
@@ -442,52 +476,96 @@ export default function VariantDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 dark:text-white">
                     <Tag className="h-5 w-5" />
-                    Attributs principaux de la variante
+                    Attributs de la variante
                   </CardTitle>
                   <CardDescription className="dark:text-gray-400">
                     Configuration spécifique de cette variante
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {variant.attributs && variant.attributs.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {variant.attributs.map((attr: any) => (
-                        <div key={attr.id} className="p-4 border rounded-lg dark:border-gray-800 dark:bg-black">
+                  <div className="space-y-6">
+                    {/* Main Attribut */}
+                    {variant.main_attribut && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 dark:text-white">Attribut principal</h3>
+                        <div className="p-4 border rounded-lg dark:border-gray-800 dark:bg-black">
                           <div className="flex items-center justify-between mb-3">
                             <span className="font-medium text-sm text-muted-foreground dark:text-gray-400 uppercase">
-                              {attr.attribut.nom}
+                              {variant.main_attribut.attribut.nom}
                             </span>
-                            {attr.hex_code && (
+                            {variant.main_attribut.hex_code && (
                               <div 
-                                className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600"
-                                style={{ backgroundColor: attr.hex_code }}
-                                title={`Couleur: ${attr.valeur}`}
+                                className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600"
+                                style={{ backgroundColor: variant.main_attribut.hex_code }}
+                                title={`Couleur: ${variant.main_attribut.valeur}`}
                               />
                             )}
                           </div>
                           <Badge 
                             variant="outline" 
-                            className="text-base dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-                            style={attr.hex_code ? { 
-                              backgroundColor: attr.hex_code, 
+                            className="text-lg px-4 py-2 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                            style={variant.main_attribut.hex_code ? { 
+                              backgroundColor: variant.main_attribut.hex_code, 
                               color: 'white',
-                              borderColor: attr.hex_code
+                              borderColor: variant.main_attribut.hex_code
                             } : {}}
                           >
-                            {attr.valeur}
+                            {variant.main_attribut.valeur}
                           </Badge>
                           <div className="mt-2 text-xs text-muted-foreground dark:text-gray-500">
-                            ID: {attr.id}
+                            ID: {variant.main_attribut.id}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Tag className="h-12 w-12 text-muted-foreground dark:text-gray-600 mx-auto mb-4" />
-                      <p className="text-muted-foreground dark:text-gray-400">Aucun attribut défini pour cette variante</p>
-                    </div>
-                  )}
+                      </div>
+                    )}
+
+                    {/* Attributs Secondaires */}
+                    {variant.attributs && variant.attributs.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 dark:text-white">Attributs secondaires</h3>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {variant.attributs.map((attr: any) => (
+                            <div key={attr.id} className="p-4 border rounded-lg dark:border-gray-800 dark:bg-black">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="font-medium text-sm text-muted-foreground dark:text-gray-400 uppercase">
+                                  {attr.attribut.nom}
+                                </span>
+                                {attr.hex_code && (
+                                  <div 
+                                    className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600"
+                                    style={{ backgroundColor: attr.hex_code }}
+                                    title={`Couleur: ${attr.valeur}`}
+                                  />
+                                )}
+                              </div>
+                              <Badge 
+                                variant="outline" 
+                                className="text-base dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                                style={attr.hex_code ? { 
+                                  backgroundColor: attr.hex_code, 
+                                  color: 'white',
+                                  borderColor: attr.hex_code
+                                } : {}}
+                              >
+                                {attr.valeur}
+                              </Badge>
+                              <div className="mt-2 text-xs text-muted-foreground dark:text-gray-500">
+                                ID: {attr.id}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Aucun attribut */}
+                    {!variant.main_attribut && (!variant.attributs || variant.attributs.length === 0) && (
+                      <div className="text-center py-8">
+                        <Tag className="h-12 w-12 text-muted-foreground dark:text-gray-600 mx-auto mb-4" />
+                        <p className="text-muted-foreground dark:text-gray-400">Aucun attribut défini pour cette variante</p>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -586,9 +664,28 @@ export default function VariantDetailPage() {
                   </div>
                 </div>
 
+                {variant.main_attribut && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Attribut principal</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge 
+                        variant="outline" 
+                        className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300"
+                        style={variant.main_attribut.hex_code ? { 
+                          backgroundColor: variant.main_attribut.hex_code, 
+                          color: 'white',
+                          borderColor: variant.main_attribut.hex_code
+                        } : {}}
+                      >
+                        {variant.main_attribut.attribut.nom}: {variant.main_attribut.valeur}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
                 {variant.attributs && variant.attributs.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs principaux</p>
+                    <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Attributs secondaires</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {variant.attributs.map((attr: any) => (
                         <Badge 
