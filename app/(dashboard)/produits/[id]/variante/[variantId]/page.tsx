@@ -152,6 +152,28 @@ export default function VariantDetailPage() {
     },
   })
 
+  // Hook pour supprimer une image de variante
+  const { mutate: deleteVariantImage, isPending: isDeletingImage } = useMutation({
+    mutationFn: async (imageId: number) => {
+      const response = await fetch(`${API_BASE_URL}/products/viewset/remove-image-variante/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          product_variante_image_id: imageId
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la suppression de l\'image')
+      }
+      
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['variant-detail', variantId] })
+    },
+  })
+
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const imageInputRef = useRef<HTMLInputElement>(null)
 
@@ -186,6 +208,26 @@ export default function VariantDetailPage() {
         onError: (error: Error) => {
           console.error("Erreur lors de la suppression:", error);
           toast.error(`Erreur lors de la suppression de la variante: ${error.message}`);
+        }
+      });
+    }
+  };
+
+  const handleDeleteImage = (imageId: number, event: React.MouseEvent) => {
+    event.stopPropagation(); // Empêcher la sélection de l'image
+    
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette image ?")) {
+      deleteVariantImage(imageId, {
+        onSuccess: () => {
+          toast.success("Image supprimée avec succès");
+          // Réinitialiser l'index sélectionné si nécessaire
+          if (selectedImageIndex >= (variant.images?.length || 0) - 1) {
+            setSelectedImageIndex(Math.max(0, (variant.images?.length || 0) - 2));
+          }
+        },
+        onError: (error: Error) => {
+          console.error("Erreur lors de la suppression de l'image:", error);
+          toast.error(`Erreur lors de la suppression de l'image: ${error.message}`);
         }
       });
     }
@@ -438,7 +480,7 @@ export default function VariantDetailPage() {
                       {variant.images.map((image: any, index: any) => (
                         <div
                           key={index}
-                          className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 flex-shrink-0 ${
+                          className={`w-16 h-16 rounded-md overflow-hidden cursor-pointer border-2 flex-shrink-0 relative group ${
                             selectedImageIndex === index ? "border-primary dark:border-blue-500" : "border-transparent"
                           }`}
                           onClick={() => setSelectedImageIndex(index)}
@@ -448,6 +490,19 @@ export default function VariantDetailPage() {
                             alt={`Image ${index + 1}`} 
                             className="w-full h-full object-cover" 
                           />
+                          {/* Bouton de suppression */}
+                          <button
+                            onClick={(e) => handleDeleteImage(image.id, e)}
+                            disabled={isDeletingImage}
+                            className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-bl-md w-5 h-5 flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 disabled:opacity-50"
+                            title="Supprimer cette image"
+                          >
+                            {isDeletingImage ? (
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            ) : (
+                              "×"
+                            )}
+                          </button>
                         </div>
                       ))}
                     </>
