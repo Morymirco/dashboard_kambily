@@ -42,16 +42,21 @@ interface Variant {
     hex_code: string | null
     created_at: string
     updated_at: string
+    quantity?: number
   }>
   images: Array<{
     id: number
     image: string
+    image_url: string | null
+    created_at: string
+    updated_at: string
+    product_variante: number
   }>
   image: string | null
   image_url: string | null
-  supplier_price: string
-  regular_price: string
-  promo_price: string
+  supplier_price: string | number
+  regular_price: string | number
+  promo_price: string | number
   quantity: number
   nombre_ventes: number
   created_at: string
@@ -155,16 +160,25 @@ export default function VariantDetailPage() {
   // Hook pour supprimer une image de variante
   const { mutate: deleteVariantImage, isPending: isDeletingImage } = useMutation({
     mutationFn: async (imageId: number) => {
+      const requestData = {
+        product_variante_image_id: imageId
+      };
+      
+      console.log('Données envoyées pour suppression image variante:', requestData);
+      
       const response = await fetch(`${API_BASE_URL}/products/viewset/remove-image-variante/`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          product_variante_image_id: imageId
-        }),
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
       })
       
       if (!response.ok) {
-        throw new Error('Erreur lors de la suppression de l\'image')
+        const errorData = await response.json().catch(() => ({}));
+        console.log('Erreur API:', errorData);
+        throw new Error(errorData.detail || 'Erreur lors de la suppression de l\'image')
       }
       
       return response.json()
@@ -189,6 +203,11 @@ export default function VariantDetailPage() {
   const formatAttributes = (attributs: Variant['attributs']): string => {
     if (!attributs || attributs.length === 0) return 'Aucun attribut'
     return attributs.map(attr => `${attr.attribut.nom}: ${attr.valeur}`).join(', ')
+  }
+
+  const calculateTotalStock = (attributs: Variant['attributs']): number => {
+    if (!attributs || attributs.length === 0) return 0
+    return attributs.reduce((total, attr) => total + (attr.quantity || 0), 0)
   }
 
   const handleDelete = () => {
@@ -616,6 +635,13 @@ export default function VariantDetailPage() {
                               >
                                 {attr.valeur}
                               </Badge>
+                              {attr.quantity !== undefined && (
+                                <div className="mt-2">
+                                  <span className="text-xs text-muted-foreground dark:text-gray-500">
+                                    Stock: {attr.quantity} unités
+                                  </span>
+                                </div>
+                              )}
                               <div className="mt-2 text-xs text-muted-foreground dark:text-gray-500">
                                 ID: {attr.id}
                               </div>
@@ -677,6 +703,13 @@ export default function VariantDetailPage() {
                         >
                           {variant.quantity} unités
                         </Badge>
+                        {variant.attributs && variant.attributs.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-muted-foreground dark:text-gray-500">
+                              Stock total par attributs: {calculateTotalStock(variant.attributs)} unités
+                            </p>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Ventes</p>
@@ -777,6 +810,27 @@ export default function VariantDetailPage() {
                   <p className="font-medium dark:text-gray-200">
                     {variant.images ? variant.images.length : 0} image{variant.images && variant.images.length > 1 ? 's' : ''}
                   </p>
+                  {variant.images && variant.images.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {variant.images.slice(0, 3).map((img: any, index: number) => (
+                        <div key={img.id} className="flex items-center gap-2 text-xs text-muted-foreground dark:text-gray-500">
+                          <div className="w-4 h-4 rounded bg-gray-200 dark:bg-gray-700 flex-shrink-0"></div>
+                          <span className="truncate">Image {index + 1}</span>
+                          <span className="text-xs opacity-75">
+                            {new Date(img.created_at).toLocaleDateString("fr-FR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      ))}
+                      {variant.images.length > 3 && (
+                        <div className="text-xs text-muted-foreground dark:text-gray-500">
+                          +{variant.images.length - 3} autre{variant.images.length - 3 > 1 ? 's' : ''}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div>
