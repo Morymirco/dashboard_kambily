@@ -170,19 +170,26 @@ export default function VariantDetailPage() {
   }
 
   const handleDelete = () => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette variante ?")) {
+    // Créer un nom descriptif pour la variante
+    const variantName = variant.main_attribut 
+      ? `${variant.main_attribut.attribut.nom}: ${variant.main_attribut.valeur}`
+      : variant.attributs && variant.attributs.length > 0
+      ? formatAttributes(variant.attributs)
+      : `Variante ${variant.id}`;
+
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la variante "${variantName}" ?\n\nCette action est irréversible et supprimera définitivement cette variante.`)) {
       deleteVariant(parseInt(variantId), {
         onSuccess: () => {
-          toast.success("Variante supprimée avec succès")
-          router.push(`/produits/${productId}`)
+          toast.success(`Variante "${variantName}" supprimée avec succès`);
+          router.push(`/produits/${productId}`);
         },
         onError: (error: Error) => {
-          console.error("Erreur lors de la suppression:", error)
-          toast.error("Erreur lors de la suppression de la variante")
+          console.error("Erreur lors de la suppression:", error);
+          toast.error(`Erreur lors de la suppression de la variante: ${error.message}`);
         }
-      })
+      });
     }
-  }
+  };
 
   const handleAddImages = () => {
     imageInputRef.current?.click()
@@ -378,8 +385,13 @@ export default function VariantDetailPage() {
             className="flex items-center gap-2 dark:bg-red-900 dark:hover:bg-red-800"
             onClick={handleDelete}
             disabled={isDeleting}
+            title={isDeleting ? "Suppression en cours..." : "Supprimer cette variante"}
           >
-            <Trash2 className="h-4 w-4" />
+            {isDeleting ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
             {isDeleting ? "Suppression..." : "Supprimer"}
           </Button>
         </div>

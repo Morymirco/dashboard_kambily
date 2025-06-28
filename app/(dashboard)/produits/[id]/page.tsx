@@ -244,11 +244,11 @@ const ProductDetailPage = () => {
       // Parcourir chaque clé principale (size, color, etc.)
       Object.entries(variants).forEach(([variantType, variantData]) => {
         // Nouveau format : variantData est un objet avec une propriété items
-        if (typeof variantData === 'object' && variantData.items && Array.isArray(variantData.items)) {
+        if (variantData && typeof variantData === 'object' && 'items' in variantData && Array.isArray((variantData as any).items)) {
           // Grouper les items par leur main_attribut.valeur
           const itemsByMainAttribute: Record<string, any[]> = {};
           
-          variantData.items.forEach((item) => {
+          (variantData as any).items.forEach((item: any) => {
             if (item.main_attribut) {
               const mainAttributeValue = item.main_attribut.valeur;
               
@@ -395,10 +395,10 @@ const ProductDetailPage = () => {
       // Nouveau format : compter les variantes uniques par main_attribut
       return Object.values(variants).reduce((total: number, variantData: any) => {
         // Nouveau format : variantData est un objet avec une propriété items
-        if (typeof variantData === 'object' && variantData.items && Array.isArray(variantData.items)) {
+        if (variantData && typeof variantData === 'object' && 'items' in variantData && Array.isArray((variantData as any).items)) {
           // Grouper par main_attribut pour compter les variantes uniques
           const uniqueMainAttributes = new Set();
-          variantData.items.forEach((item) => {
+          (variantData as any).items.forEach((item: any) => {
             if (item.main_attribut) {
               uniqueMainAttributes.add(item.main_attribut.valeur);
             }
@@ -431,10 +431,10 @@ const ProductDetailPage = () => {
       const counts: Record<string, number> = {};
       Object.entries(variants).forEach(([type, variantData]) => {
         // Nouveau format : variantData est un objet avec une propriété items
-        if (typeof variantData === 'object' && variantData.items && Array.isArray(variantData.items)) {
+        if (variantData && typeof variantData === 'object' && 'items' in variantData && Array.isArray((variantData as any).items)) {
           // Compter les variantes uniques par main_attribut
           const uniqueMainAttributes = new Set();
-          variantData.items.forEach((item) => {
+          (variantData as any).items.forEach((item: any) => {
             if (item.main_attribut) {
               uniqueMainAttributes.add(item.main_attribut.valeur);
             }
@@ -452,6 +452,41 @@ const ProductDetailPage = () => {
       return counts;
     }
     return {};
+  };
+
+  const handleDeleteVariant = async (variantId: number, variantName: string) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer la variante "${variantName}" ?`)) {
+      deleteVariant(variantId, {
+        onSuccess: () => {
+          toast.success("Variante supprimée avec succès");
+        },
+        onError: (error) => {
+          console.error("Erreur lors de la suppression de la variante:", error);
+          toast.error("Erreur lors de la suppression de la variante");
+        }
+      });
+    }
+  };
+
+  const handleDeleteAllVariantsInGroup = async (variants: any[], groupName: string) => {
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer toutes les variantes du groupe "${groupName}" ? Cette action est irréversible.`)) {
+      const deletePromises = variants.map((variant) => 
+        new Promise((resolve, reject) => {
+          deleteVariant(variant.id, {
+            onSuccess: () => resolve(true),
+            onError: (error) => reject(error)
+          });
+        })
+      );
+
+      try {
+        await Promise.all(deletePromises);
+        toast.success(`Toutes les variantes du groupe "${groupName}" ont été supprimées`);
+      } catch (error) {
+        console.error("Erreur lors de la suppression des variantes:", error);
+        toast.error("Erreur lors de la suppression des variantes");
+      }
+    }
   };
 
   return (
@@ -798,6 +833,20 @@ const ProductDetailPage = () => {
                                     >
                                       <Edit className="h-3.5 w-3.5 mr-1" />
                                       Modifier
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                                      onClick={() => handleDeleteAllVariantsInGroup(uniqueVariants, mainAttributeKey)}
+                                      disabled={isDeletingVariant}
+                                    >
+                                      {isDeletingVariant ? (
+                                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600 mr-1"></div>
+                                      ) : (
+                                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                      )}
+                                      Supprimer tout
                                     </Button>
                                   </div>
                                 </div>
