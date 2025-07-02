@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useCategoriesOff } from "@/hooks/api/categories"
@@ -17,7 +18,6 @@ import { ChevronLeft, Save } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "react-hot-toast"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function EditProductPage() {
   const params = useParams()
@@ -33,7 +33,6 @@ export default function EditProductPage() {
   const [productData, setProductData] = useState({
     name: "",
     sku: "",
-    regular_price: "",
     quantity: 0,
     supplier_price: 0,
     is_published: true,
@@ -54,7 +53,6 @@ export default function EditProductPage() {
       setProductData({
         name: product.name || "",
         sku: product.sku || "",
-        regular_price: product.regular_price?.toString() || "",
         quantity: product.quantity || 0,
         supplier_price: (product as any).supplier_price || 0,
         is_published: (product as any).is_published ?? true,
@@ -290,29 +288,15 @@ export default function EditProductPage() {
                 <CardTitle>Prix et stock</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier_price">Prix fournisseur</Label>
-                    <Input
-                      id="supplier_price"
-                      name="supplier_price"
-                      type="number"
-                      value={productData.supplier_price}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="regular_price">Prix de vente</Label>
-                    <Input
-                      id="regular_price"
-                      name="regular_price"
-                      type="number"
-                      readOnly
-                      value={productData.regular_price}
-                      onChange={handleChange}
-                      required
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="supplier_price">Prix fournisseur</Label>
+                  <Input
+                    id="supplier_price"
+                    name="supplier_price"
+                    type="number"
+                    value={productData.supplier_price}
+                    onChange={handleChange}
+                  />
                 </div>
 
                 {productData.product_type !== "variable" && (

@@ -97,21 +97,28 @@ export default function AddVariantesPage() {
     const formattedVariants = variants.map((variant, variantIndex) => {
       // Séparer l'attribut principal des attributs secondaires
       const mainAttributValue = variant.attributs[0]
-      // Ne garder que les attributs secondaires dans le tableau attributs
       const secondaryAttributes = variant.attributs.slice(1)
       
-      // S'assurer que nous avons une quantité supérieure à 0 pour chaque attribut secondaire
-      const quantities = secondaryAttributes.map((attrId) => {
-        // Convertir explicitement en nombre et s'assurer que c'est supérieur à 0
-        const quantity = Number(variant.quantities[attrId]) || 0
-        return quantity
-      })
+      let attributs: number[]
+      let quantities: number[]
+      
+      if (secondaryAttributes.length === 0) {
+        // Si pas d'attributs secondaires, utiliser l'attribut principal
+        attributs = [mainAttributValue]
+        quantities = [Number(variant.quantities[mainAttributValue]) || 0]
+      } else {
+        // Si il y a des attributs secondaires, les utiliser
+        attributs = secondaryAttributes
+        quantities = secondaryAttributes.map((attrId) => {
+          return Number(variant.quantities[attrId]) || 0
+        })
+      }
 
       // Vérification des quantités
       const hasInvalidQuantities = quantities.some(q => q <= 0)
       if (hasInvalidQuantities) {
         console.error("Quantités invalides détectées:", {
-          secondaryAttributes,
+          attributs,
           quantities,
           rawQuantities: variant.quantities
         })
@@ -119,7 +126,7 @@ export default function AddVariantesPage() {
 
       return {
         main_attribut: mainAttributValue,
-        attributs: secondaryAttributes,
+        attributs: attributs,
         quantities: quantities,
         promo_price: variant.promo_price,
         supplier_price: variant.supplier_price
@@ -144,17 +151,23 @@ export default function AddVariantesPage() {
     })
 
     if (!validVariants) {
-      toast.error("Veuillez définir une quantité supérieure à 0 pour chaque attribut secondaire")
+      toast.error("Veuillez définir une quantité supérieure à 0 pour chaque attribut")
       return
     }
 
     // Envoyer comme JSON simple
-    console.log("Données envoyées en JSON:", formattedVariants)
+    const requestBody = { variantes: formattedVariants }
+    console.log("=== CORPS DE LA REQUÊTE ===")
+    console.log("URL:", `/products/${id}/variants`)
+    console.log("Méthode: POST")
+    console.log("Corps de la requête:")
+    console.log(JSON.stringify(requestBody, null, 2))
+    console.log("==========================")
 
     addVariantes(
       { 
         id, 
-        data: { variantes: formattedVariants } 
+        data: requestBody
       },
       {
         onSuccess: () => {
@@ -266,7 +279,7 @@ export default function AddVariantesPage() {
                             main_attribut: parseInt(value),
                             attributs: [],
                             quantities: [],
-                            promo_price: "",
+                            promo_price: "0",
                             supplier_price: ""
                           }
                           setVariants(newVariants)
@@ -335,7 +348,7 @@ export default function AddVariantesPage() {
                           id={`promo-price-${index}`}
                           type="number"
                           placeholder="0"
-                          value={variant.promo_price || ""}
+                          value={variant.promo_price || "0"}
                           onChange={(e) => {
                             const newVariants = [...variants]
                             newVariants[index] = {
@@ -437,42 +450,80 @@ export default function AddVariantesPage() {
                     )}
 
                     {/* Quantités pour les attributs sélectionnés */}
-                    {variant.attributs.length > 1 && (
+                    {variant.attributs.length > 0 && (
                       <div>
                         <Label>Quantités</Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {variant.attributs.slice(1).map((attrId) => {
-                            const attribute = availableAttributes.find(attr => 
-                              attr.valeurs.some(v => v.id === attrId)
-                            )
-                            const value = attribute?.valeurs.find(v => v.id === attrId)
-                            
-                            return (
-                              <div key={attrId} className="space-y-2">
-                                <Label className="text-sm font-medium">
-                                  {attribute?.nom}: {value?.valeur}
-                                </Label>
-                                <Input
-                                  type="number"
-                                  placeholder="Quantité"
-                                  value={variant.quantities[attrId] || ""}
-                                  onChange={(e) => {
-                                    const newVariants = [...variants]
-                                    newVariants[index] = {
-                                      ...newVariants[index],
-                                      quantities: {
-                                        ...newVariants[index].quantities,
-                                        [attrId]: parseInt(e.target.value) || 0
+                          {variant.attributs.length === 1 ? (
+                            // Si seulement l'attribut principal, afficher sa quantité
+                            (() => {
+                              const attrId = variant.attributs[0]
+                              const attribute = availableAttributes.find(attr => 
+                                attr.valeurs.some(v => v.id === attrId)
+                              )
+                              const value = attribute?.valeurs.find(v => v.id === attrId)
+                              
+                              return (
+                                <div key={attrId} className="space-y-2">
+                                  <Label className="text-sm font-medium">
+                                    {attribute?.nom}: {value?.valeur}
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="Quantité"
+                                    value={variant.quantities[attrId] || ""}
+                                    onChange={(e) => {
+                                      const newVariants = [...variants]
+                                      newVariants[index] = {
+                                        ...newVariants[index],
+                                        quantities: {
+                                          ...newVariants[index].quantities,
+                                          [attrId]: parseInt(e.target.value) || 0
+                                        }
                                       }
-                                    }
-                                    setVariants(newVariants)
-                                  }}
-                                  min="1"
-                                  required
-                                />
-                              </div>
-                            )
-                          })}
+                                      setVariants(newVariants)
+                                    }}
+                                    min="1"
+                                    required
+                                  />
+                                </div>
+                              )
+                            })()
+                          ) : (
+                            // Si il y a des attributs secondaires, afficher leurs quantités
+                            variant.attributs.slice(1).map((attrId) => {
+                              const attribute = availableAttributes.find(attr => 
+                                attr.valeurs.some(v => v.id === attrId)
+                              )
+                              const value = attribute?.valeurs.find(v => v.id === attrId)
+                              
+                              return (
+                                <div key={attrId} className="space-y-2">
+                                  <Label className="text-sm font-medium">
+                                    {attribute?.nom}: {value?.valeur}
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    placeholder="Quantité"
+                                    value={variant.quantities[attrId] || ""}
+                                    onChange={(e) => {
+                                      const newVariants = [...variants]
+                                      newVariants[index] = {
+                                        ...newVariants[index],
+                                        quantities: {
+                                          ...newVariants[index].quantities,
+                                          [attrId]: parseInt(e.target.value) || 0
+                                        }
+                                      }
+                                      setVariants(newVariants)
+                                    }}
+                                    min="1"
+                                    required
+                                  />
+                                </div>
+                              )
+                            })
+                          )}
                         </div>
                       </div>
                     )}
@@ -491,7 +542,7 @@ export default function AddVariantesPage() {
                       main_attribut: 0,
                       attributs: [],
                       quantities: [],
-                      promo_price: "",
+                      promo_price: "0",
                       supplier_price: ""
                     }
                   ])

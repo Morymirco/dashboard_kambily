@@ -49,7 +49,6 @@ export type CreateProductData = {
 export type UpdateProductData = {
   name: string
   sku: string
-  regular_price: string
   quantity: number
 }
 interface ProductImage {
