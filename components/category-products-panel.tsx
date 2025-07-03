@@ -96,7 +96,7 @@ export default function CategoryProductsPanel({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            {categoryName}
+            Produits de la catégorie {categoryName}
           </CardTitle>
           <CardDescription>
             {totalProducts} produit{totalProducts !== 1 ? 's' : ''} dans cette catégorie
