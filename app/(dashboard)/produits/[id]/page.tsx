@@ -190,8 +190,12 @@ const ProductDetailPage = () => {
     }
     setIsSubmittingMainAttr(true);
     try {
+      console.log({
+        main_attribut: selectedMainAttr,
+        attribut_variante_ids: selectedVarianteIds
+      });
       await axios.post(
-        `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/viewset/attributes/reorder-attributes/`,
+        `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/viewset/attributs/reorder-attributs/`,
         {
           main_attribut: selectedMainAttr,
           attribut_variante_ids: selectedVarianteIds,
