@@ -4,7 +4,7 @@ import { API_ENDPOINTS } from "@/lib/constant/api";
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 export const baseURL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "https://api.kambily.com";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.1.133:8000";
 
 const API = axios.create({
   baseURL,

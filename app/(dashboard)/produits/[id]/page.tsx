@@ -235,76 +235,68 @@ const ProductDetailPage = () => {
     return product.stats_star[key] || 0;
   };
 
-  // Fonction pour grouper les variantes par leur attribut principal
   const groupVariantsByMainAttribute = (variants: any) => {
-    // Si variants est un objet avec des clés (nouveau format)
-    if (typeof variants === 'object' && !Array.isArray(variants)) {
-      const grouped: Record<string, any[]> = {};
-      
-      // Parcourir chaque clé principale (size, color, etc.)
+    // Nouveau regroupement : tableau ou objet
+    const grouped: Record<string, any[]> = {};
+    const autres: any[] = [];
+
+    if (Array.isArray(variants)) {
+      variants.forEach(variant => {
+        if (variant.main_attribut) {
+          const mainAttributeKey = `${variant.main_attribut.attribut.nom}: ${variant.main_attribut.valeur}`;
+          if (!grouped[mainAttributeKey]) grouped[mainAttributeKey] = [];
+          grouped[mainAttributeKey].push(variant);
+        } else {
+          autres.push(variant);
+        }
+      });
+      if (autres.length > 0) {
+        grouped['Autre'] = autres;
+      }
+      return grouped;
+    }
+    // Si c'est un objet (ancien format), garder la logique précédente
+    if (typeof variants === 'object' && variants !== null) {
       Object.entries(variants).forEach(([variantType, variantData]) => {
-        // Nouveau format : variantData est un objet avec une propriété items
         if (variantData && typeof variantData === 'object' && 'items' in variantData && Array.isArray((variantData as any).items)) {
-          // Grouper les items par leur main_attribut.valeur
           const itemsByMainAttribute: Record<string, any[]> = {};
-          
           (variantData as any).items.forEach((item: any) => {
             if (item.main_attribut) {
               const mainAttributeValue = item.main_attribut.valeur;
-              
               if (!itemsByMainAttribute[mainAttributeValue]) {
                 itemsByMainAttribute[mainAttributeValue] = [];
               }
               itemsByMainAttribute[mainAttributeValue].push(item);
+            } else {
+              autres.push(item);
             }
           });
-          
-          // Créer un groupe pour chaque valeur d'attribut principal
           Object.entries(itemsByMainAttribute).forEach(([mainAttributeValue, items]) => {
             const mainAttributeKey = `${variantType.toUpperCase()}: ${mainAttributeValue}`;
-            
             if (!grouped[mainAttributeKey]) {
               grouped[mainAttributeKey] = [];
             }
-            // Ajouter tous les items individuels (pas de consolidation)
             grouped[mainAttributeKey].push(...items);
           });
-        }
-        // Ancien format : variantData est directement un tableau
-        else if (Array.isArray(variantData)) {
+        } else if (Array.isArray(variantData)) {
           variantData.forEach((variant) => {
             if (variant.main_attribut) {
               const mainAttributeKey = `${variantType.toUpperCase()}: ${variant.main_attribut.valeur}`;
-              
               if (!grouped[mainAttributeKey]) {
                 grouped[mainAttributeKey] = [];
               }
               grouped[mainAttributeKey].push(variant);
+            } else {
+              autres.push(variant);
             }
           });
         }
       });
-      
+      if (autres.length > 0) {
+        grouped['Autre'] = autres;
+      }
       return grouped;
     }
-    
-    // Fallback pour l'ancien format (tableau)
-    const grouped: Record<string, any[]> = {};
-    
-    if (Array.isArray(variants)) {
-      variants.forEach(variant => {
-        if (variant.attributs && variant.attributs.length > 0) {
-          const mainAttribute = variant.attributs[0];
-          const mainAttributeKey = `${mainAttribute.attribut.nom}: ${mainAttribute.valeur}`;
-          
-          if (!grouped[mainAttributeKey]) {
-            grouped[mainAttributeKey] = [];
-          }
-          grouped[mainAttributeKey].push(variant);
-        }
-      });
-    }
-    
     return grouped;
   };
 
@@ -1133,4 +1125,3 @@ const ProductDetailPage = () => {
 };
 
 export default WithAuth(ProductDetailPage);
-
