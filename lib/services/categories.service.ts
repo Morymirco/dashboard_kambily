@@ -48,3 +48,8 @@ export const getCategoriesOff = async () => {
     const response = await API.get(API_ENDPOINTS.categories.of)
     return response.data
 }
+
+export const getCategoryProducts = async (id: string, page: number = 1) => {
+    const response = await API.get(`${API_ENDPOINTS.categories.detail(id)}?page=${page}`)
+    return response.data
+}

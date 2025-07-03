@@ -1,31 +1,31 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-import {formatPrice } from "@/lib/utils"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import CategoryProductsPanel from "@/components/category-products-panel"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
-import { ArrowLeft, Tags, Save, Trash2, FolderTree, ImageIcon, Package, AlertTriangle, Pencil } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
+import { API_BASE_URL } from "@/constants"
+import { useAuth } from "@/contexts/auth-context"
+import { useCategories, useCategory, useParentCategories } from "@/hooks/api/categories"
+import { AlertTriangle, ArrowLeft, FolderTree, Save, Tags, Trash2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { API_BASE_URL } from "@/constants"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { useCategory , useParentCategories,useCategories} from "@/hooks/api/categories"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 // Type pour les catégories
 type Category = {
@@ -42,17 +42,7 @@ type Category = {
   total?: number
 }
 
-// Type pour les produits
-type Product = {
-  id: number
-  name: string
-  slug: string
-  regular_price: string
-  promo_price: string
-  short_description: string
-  images: Array<{ id: number, image: string }>
-  is_recommended: boolean
-}
+
 
 export default function CategoryDetailPage() {
   const params = useParams()
@@ -60,7 +50,6 @@ export default function CategoryDetailPage() {
   const { getToken } = useAuth()
   const [category, setCategory] = useState<Category | null>(null)
   const [parentCategories, setParentCategories] = useState<Category[]>([])
-  const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
@@ -83,7 +72,6 @@ export default function CategoryDetailPage() {
   useEffect(() => {
     if (categoryData) {
       setCategory(categoryData)
-      // setProducts(categoryData.products || [])
       setFormData({
         name: categoryData.name,
         description: categoryData.description || "",
@@ -93,6 +81,8 @@ export default function CategoryDetailPage() {
       setImagePreview(categoryData.image)
     }
   }, [categoryData])
+
+
 
 
 
@@ -245,13 +235,13 @@ export default function CategoryDetailPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Détails de la catégorie */}
-        <div className="md:col-span-2">
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Détails de la catégorie</CardTitle>
+                <CardTitle>{category?.name || "Détails de la catégorie"}</CardTitle>
                 <CardDescription>Informations sur la catégorie et ses paramètres</CardDescription>
               </div>
               <div className="flex gap-2">
@@ -337,7 +327,7 @@ export default function CategoryDetailPage() {
                     <div>
                       <p className="text-sm font-medium">Nombre de produits</p>
                       <p className="text-muted-foreground">
-                        {category?.total_products || products.length}
+                        {category?.total_products || category?.products_count || 0}
                       </p>
                     </div>
                     <div>
@@ -456,78 +446,11 @@ export default function CategoryDetailPage() {
         </div>
 
         {/* Produits de la catégorie */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Produits associés</CardTitle>
-              <CardDescription>
-                {category?.total_products || products.length} produit{(category?.total_products || products.length) !== 1 ? 's' : ''} dans cette catégorie
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {products.length > 0 ? (
-                <div className="space-y-4">
-                  {products.map(product => (
-                    <div key={product.id} className="flex items-center space-x-3 rounded-md border p-3">
-                      <div className="h-12 w-12 overflow-hidden rounded-md bg-muted">
-                        {product.images && product.images.length > 0 ? (
-                          <Image
-                            src={product.images[0].image}
-                            alt={product.name}
-                            width={48}
-                            height={48}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <Package className="h-6 w-6 m-3 text-muted-foreground/50" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <Link 
-                          href={`/produits/${product.id}`}
-                          className="font-medium hover:underline truncate block"
-                        >
-                          {product.name}
-                        </Link>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <span className="truncate">
-                            {product.promo_price && product.promo_price !== "0.00" ? (
-                              <>
-                                <span className="line-through">{parseInt(product.regular_price).toLocaleString()} GNF</span>
-                                <span className="ml-1 text-green-600">{parseInt(product.promo_price).toLocaleString()} GNF</span>
-                              </>
-                            ) : (
-                              <>{parseInt(product.regular_price).toLocaleString()} GNF</>
-                            )}
-                          </span>
-                          {product.is_recommended && (
-                            <>
-                              <span className="mx-2">•</span>
-                              <span className="text-amber-500">Recommandé</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Aucun produit dans cette catégorie
-                  </p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full" asChild>
-                <Link href={`/produits?category=${id}`}>
-                  Voir tous les produits
-                </Link>
-              </Button>
-            </CardFooter>
-          </Card>
+        <div className="lg:col-span-1">
+          <CategoryProductsPanel 
+            categoryId={id}
+            categoryName={category?.name || "Produits de la catégorie"}
+          />
         </div>
       </div>
 
@@ -551,11 +474,11 @@ export default function CategoryDetailPage() {
                 </div>
               )}
               
-              {products.length > 0 && (
+              {(category?.total_products || category?.products_count || 0) > 0 && (
                 <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-blue-800 dark:text-blue-200">
                   <p className="text-sm font-medium">Information</p>
                   <p className="text-xs">
-                    Cette catégorie contient {products.length} produit{products.length > 1 ? 's' : ''}. 
+                    Cette catégorie contient {category?.total_products || category?.products_count || 0} produit{(category?.total_products || category?.products_count || 0) > 1 ? 's' : ''}. 
                     Les produits ne seront pas supprimés, mais ils ne seront plus associés à cette catégorie.
                   </p>
                 </div>
@@ -611,9 +534,9 @@ function CategoryDetailSkeleton() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Squelette pour les détails de la catégorie */}
-        <div className="md:col-span-2">
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
@@ -667,7 +590,7 @@ function CategoryDetailSkeleton() {
         </div>
 
         {/* Squelette pour les produits associés */}
-        <div>
+        <div className="lg:col-span-1">
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-[150px] mb-2" />
