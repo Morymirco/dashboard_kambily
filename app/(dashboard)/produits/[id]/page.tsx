@@ -15,6 +15,9 @@ import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { HOST_IP, PORT, PROTOCOL_HTTP } from "../../../../constants"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { Select } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const ProductDetailPage = () => {
   const params = useParams();
@@ -56,6 +59,12 @@ const ProductDetailPage = () => {
     regular_price: 0,
     promo_price: 0,
   });
+
+  const [openMainAttrDialog, setOpenMainAttrDialog] = useState(false);
+  const [selectedMainAttr, setSelectedMainAttr] = useState<number | null>(null);
+  const [selectedVarianteIds, setSelectedVarianteIds] = useState<number[]>([]);
+  const [isSubmittingMainAttr, setIsSubmittingMainAttr] = useState(false);
+  const [selectedMainAttrType, setSelectedMainAttrType] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchAttributes = async () => {
@@ -166,6 +175,39 @@ const ProductDetailPage = () => {
           toast.error("Erreur lors de la suppression de l'image");
         }
       });
+    }
+  };
+
+  const handleOpenMainAttrDialog = (autreVariants: any[]) => {
+    setSelectedVarianteIds(autreVariants.map(v => v.id));
+    setOpenMainAttrDialog(true);
+  };
+
+  const handleSubmitMainAttr = async () => {
+    if (!selectedMainAttr || selectedVarianteIds.length === 0) {
+      toast.error("Veuillez sélectionner un attribut principal et au moins une variante.");
+      return;
+    }
+    setIsSubmittingMainAttr(true);
+    try {
+      await axios.post(
+        `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/viewset/attributes/reorder-attributes/`,
+        {
+          main_attribut: selectedMainAttr,
+          attribut_variante_ids: selectedVarianteIds,
+        },
+        getAxiosConfig()
+      );
+      toast.success("Main attribut défini avec succès !");
+      setOpenMainAttrDialog(false);
+      setSelectedMainAttr(null);
+      setSelectedVarianteIds([]);
+      // Optionnel : recharger les données produit
+      router.refresh && router.refresh();
+    } catch (error) {
+      toast.error("Erreur lors de la définition du main attribut.");
+    } finally {
+      setIsSubmittingMainAttr(false);
     }
   };
 
@@ -481,6 +523,24 @@ const ProductDetailPage = () => {
     }
   };
 
+  // Grouper les attributs par nom pour le Dialog
+  const groupAttributesByNom = (attributes: any[]) => {
+    const grouped: { [key: string]: { id: number, nom: string, valeurs: any[] } } = {};
+    attributes.forEach((attr: any) => {
+      const nom = attr.attribut.nom;
+      if (!grouped[nom]) {
+        grouped[nom] = {
+          id: attr.attribut.id,
+          nom: nom,
+          valeurs: []
+        };
+      }
+      grouped[nom].valeurs.push(attr);
+    });
+    return Object.values(grouped);
+  };
+  const groupedAvailableAttributes = groupAttributesByNom(availableAttributes);
+
   return (
     <div className="p-6 dark:bg-black dark:text-gray-100">
       <div className="flex items-center justify-between mb-6">
@@ -776,6 +836,7 @@ const ProductDetailPage = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
+                      {/* Mapping des groupes de variantes */}
                       {Object.entries(groupVariantsByMainAttribute(product.variantes)).map(([mainAttributeKey, variants]) => {
                         const variantType = mainAttributeKey.split(": ")[0].toLowerCase();
                         const mainAttributeValue = getMainAttributeValue(variants[0]);
@@ -789,58 +850,56 @@ const ProductDetailPage = () => {
                           return Math.max(max, currentCount);
                         }, 0);
                         
+                        // Si c'est le groupe 'Autre', afficher le bouton
+                        const isAutre = mainAttributeKey === 'Autre';
                         return (
                           <div key={mainAttributeKey} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
                             {/* En-tête du groupe */}
-                            <div className="bg-muted dark:bg-gray-900 px-4 py-3 border-b dark:border-gray-800">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <Badge 
-                                    variant="secondary" 
-                                    className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300"
+                            <div className="bg-muted dark:bg-gray-900 px-4 py-3 border-b dark:border-gray-800 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300">
+                                  {isAutre ? "Autre" : mainAttributeKey}
+                                </Badge>
+                                {isAutre && (
+                                  <Button size="sm" variant="outline" className="ml-2" onClick={() => handleOpenMainAttrDialog(variants)}>
+                                    Définir un main attribut
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                    onClick={() => router.push(`/produits/${id}/variante/${uniqueVariants[0].id}`)}
                                   >
-                                    {variantType.charAt(0).toUpperCase() + variantType.slice(1)}
-                                  </Badge>
-                                  <span className="font-medium dark:text-white">{mainAttributeValue}</span>
-                                  <span className="text-sm text-muted-foreground dark:text-gray-400">
-                                    (Première variante - {maxSecondaryAttributesCount} attribut{maxSecondaryAttributesCount > 1 ? 's' : ''} secondaire{maxSecondaryAttributesCount > 1 ? 's' : ''})
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className="flex gap-1">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
-                                      onClick={() => router.push(`/produits/${id}/variante/${uniqueVariants[0].id}`)}
-                                    >
-                                      <Eye className="h-3.5 w-3.5 mr-1" />
-                                      Voir
-                                    </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
-                                      onClick={() => router.push(`/produits/${id}/variante/${uniqueVariants[0].id}`)}
-                                    >
-                                      <Edit className="h-3.5 w-3.5 mr-1" />
-                                      Modifier
-                                    </Button>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
-                                      onClick={() => handleDeleteAllVariantsInGroup(uniqueVariants, mainAttributeKey)}
-                                      disabled={isDeletingVariant}
-                                    >
-                                      {isDeletingVariant ? (
-                                        <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600 mr-1"></div>
-                                      ) : (
-                                        <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                      )}
-                                      Supprimer tout
-                                    </Button>
-                                  </div>
+                                    <Eye className="h-3.5 w-3.5 mr-1" />
+                                    Voir
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800"
+                                    onClick={() => router.push(`/produits/${id}/variante/${uniqueVariants[0].id}`)}
+                                  >
+                                    <Edit className="h-3.5 w-3.5 mr-1" />
+                                    Modifier
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20"
+                                    onClick={() => handleDeleteAllVariantsInGroup(uniqueVariants, mainAttributeKey)}
+                                    disabled={isDeletingVariant}
+                                  >
+                                    {isDeletingVariant ? (
+                                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600 mr-1"></div>
+                                    ) : (
+                                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                    )}
+                                    Supprimer tout
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -910,21 +969,35 @@ const ProductDetailPage = () => {
                                       </td>
                                       <td className="px-4 py-3">
                                         <div className="flex flex-wrap gap-1">
-                                          {variant.attributs && variant.attributs.length > 0 ? (
-                                            variant.attributs.map((attr: any, attrIndex: number) => (
-                                              <Badge 
-                                                key={attrIndex} 
-                                                variant="outline" 
-                                                className={`text-xs ${
-                                                  attrIndex === 0 
-                                                    ? "bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700" 
-                                                    : "bg-muted/50 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700"
-                                                }`}
+                                          {/* Afficher le main_attribut en bleu s'il existe */}
+                                          {variant.main_attribut && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs bg-primary/10 text-primary dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700"
+                                            >
+                                              {variant.main_attribut.attribut.nom}: {variant.main_attribut.valeur}
+                                            </Badge>
+                                          )}
+                                          {/* Afficher les attributs secondaires (gris), en excluant le main_attribut */}
+                                          {variant.attributs && variant.attributs
+                                            .filter(attr =>
+                                              !(
+                                                variant.main_attribut &&
+                                                attr.attribut.nom === variant.main_attribut.attribut.nom &&
+                                                attr.valeur === variant.main_attribut.valeur
+                                              )
+                                            )
+                                            .map((attr: any, attrIndex: number) => (
+                                              <Badge
+                                                key={attrIndex}
+                                                variant="outline"
+                                                className="text-xs bg-muted/50 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700"
                                               >
                                                 {attr.attribut.nom}: {attr.valeur}
                                               </Badge>
-                                            ))
-                                          ) : (
+                                            ))}
+                                          {/* Si aucun attribut, afficher un message */}
+                                          {!(variant.main_attribut || (variant.attributs && variant.attributs.length > 0)) && (
                                             <span className="text-xs text-muted-foreground dark:text-gray-500">
                                               Aucun attribut
                                             </span>
@@ -1120,6 +1193,85 @@ const ProductDetailPage = () => {
         onChange={handleImageFileChange}
         className="hidden"
       />
+
+      {/* Dialog pour définir le main attribut (en dehors de la boucle) */}
+      <Dialog open={openMainAttrDialog} onOpenChange={setOpenMainAttrDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Définir un attribut principal</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium">Type d'attribut principal</label>
+              <select
+                className="w-full border rounded p-2"
+                value={selectedMainAttrType ?? ''}
+                onChange={e => {
+                  const groupId = Number(e.target.value);
+                  setSelectedMainAttrType(groupId);
+                  setSelectedMainAttr(null);
+                }}
+              >
+                <option value="">Sélectionner...</option>
+                {groupedAvailableAttributes.map(group => (
+                  <option key={group.id} value={group.id}>{group.nom}</option>
+                ))}
+              </select>
+            </div>
+            {/* Select pour la valeur de l'attribut principal */}
+            <div>
+              <label className="block mb-1 font-medium">Valeur de l'attribut principal</label>
+              <select
+                className="w-full border rounded p-2"
+                value={selectedMainAttr ?? ''}
+                onChange={e => setSelectedMainAttr(Number(e.target.value))}
+                disabled={!selectedMainAttrType}
+              >
+                <option value="">Sélectionner...</option>
+                {(() => {
+                  const group = groupedAvailableAttributes.find(g => g.id === selectedMainAttrType);
+                  return group ? group.valeurs.map((val: any) => (
+                    <option key={val.id} value={val.id}>
+                      {val.valeur}
+                      {('hex_code' in val && val.hex_code) ? ` (${val.hex_code})` : ''}
+                    </option>
+                  )) : null;
+                })()}
+              </select>
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Variantes concernées</label>
+              <div className="max-h-40 overflow-y-auto border rounded p-2">
+                {selectedVarianteIds.map(vid => (
+                  <div key={vid} className="flex items-center gap-2 mb-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedVarianteIds.includes(vid)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedVarianteIds([...selectedVarianteIds, vid]);
+                        } else {
+                          setSelectedVarianteIds(selectedVarianteIds.filter(id => id !== vid));
+                        }
+                      }}
+                      id={`variante-${vid}`}
+                    />
+                    <label htmlFor={`variante-${vid}`}>Variante ID {vid}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSubmitMainAttr} disabled={isSubmittingMainAttr}>
+              {isSubmittingMainAttr ? "Enregistrement..." : "Valider"}
+            </Button>
+            <DialogClose asChild>
+              <Button variant="outline">Annuler</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
