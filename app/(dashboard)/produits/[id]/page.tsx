@@ -65,6 +65,8 @@ const ProductDetailPage = () => {
   const [selectedVarianteIds, setSelectedVarianteIds] = useState<number[]>([]);
   const [isSubmittingMainAttr, setIsSubmittingMainAttr] = useState(false);
   const [selectedMainAttrType, setSelectedMainAttrType] = useState<number | null>(null);
+  const [autreVariantsForDialog, setAutreVariantsForDialog] = useState<any[]>([]);
+  const [selectedAttributIds, setSelectedAttributIds] = useState<number[]>([]);
 
   useEffect(() => {
     const fetchAttributes = async () => {
@@ -180,32 +182,34 @@ const ProductDetailPage = () => {
 
   const handleOpenMainAttrDialog = (autreVariants: any[]) => {
     setSelectedVarianteIds(autreVariants.map(v => v.id));
+    setAutreVariantsForDialog(autreVariants);
+    setSelectedAttributIds([]);
     setOpenMainAttrDialog(true);
   };
 
   const handleSubmitMainAttr = async () => {
-    if (!selectedMainAttr || selectedVarianteIds.length === 0) {
-      toast.error("Veuillez sélectionner un attribut principal et au moins une variante.");
+    if (!selectedMainAttr || selectedAttributIds.length === 0) {
+      toast.error("Veuillez sélectionner un attribut principal et au moins un attribut.");
       return;
     }
     setIsSubmittingMainAttr(true);
     try {
       console.log({
         main_attribut: selectedMainAttr,
-        attribut_variante_ids: selectedVarianteIds
+        attribut_variante_ids: selectedAttributIds
       });
       await axios.post(
         `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/viewset/attributs/reorder-attributs/`,
         {
           main_attribut: selectedMainAttr,
-          attribut_variante_ids: selectedVarianteIds,
+          attribut_variante_ids: selectedAttributIds,
         },
         getAxiosConfig()
       );
       toast.success("Main attribut défini avec succès !");
       setOpenMainAttrDialog(false);
       setSelectedMainAttr(null);
-      setSelectedVarianteIds([]);
+      setSelectedAttributIds([]);
       // Optionnel : recharger les données produit
       router.refresh && router.refresh();
     } catch (error) {
@@ -1228,7 +1232,11 @@ const ProductDetailPage = () => {
               <select
                 className="w-full border rounded p-2"
                 value={selectedMainAttr ?? ''}
-                onChange={e => setSelectedMainAttr(Number(e.target.value))}
+                onChange={e => {
+                  const valueId = Number(e.target.value);
+                  setSelectedMainAttr(valueId);
+                  console.log('Valeur sélectionnée (id):', valueId);
+                }}
                 disabled={!selectedMainAttrType}
               >
                 <option value="">Sélectionner...</option>
@@ -1246,21 +1254,30 @@ const ProductDetailPage = () => {
             <div>
               <label className="block mb-1 font-medium">Variantes concernées</label>
               <div className="max-h-40 overflow-y-auto border rounded p-2">
-                {selectedVarianteIds.map(vid => (
-                  <div key={vid} className="flex items-center gap-2 mb-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedVarianteIds.includes(vid)}
-                      onChange={e => {
-                        if (e.target.checked) {
-                          setSelectedVarianteIds([...selectedVarianteIds, vid]);
-                        } else {
-                          setSelectedVarianteIds(selectedVarianteIds.filter(id => id !== vid));
-                        }
-                      }}
-                      id={`variante-${vid}`}
-                    />
-                    <label htmlFor={`variante-${vid}`}>Variante ID {vid}</label>
+                {autreVariantsForDialog.map(variant => (
+                  <div key={variant.id} className="mb-2">
+                    <div className="font-semibold mb-1">Variante ID {variant.id}</div>
+                    {variant.attributs && variant.attributs.length > 0 ? (
+                      variant.attributs.map((attr: any) => (
+                        <div key={attr.id} className="flex items-center gap-2 mb-1 ml-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedAttributIds.includes(attr.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedAttributIds(prev => [...prev, attr.id]);
+                              } else {
+                                setSelectedAttributIds(prev => prev.filter(id => id !== attr.id));
+                              }
+                            }}
+                            id={`attr-${attr.id}`}
+                          />
+                          <label htmlFor={`attr-${attr.id}`}>{attr.attribut.nom}: {attr.valeur}</label>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="ml-4 text-xs text-muted-foreground">Aucun attribut</div>
+                    )}
                   </div>
                 ))}
               </div>
