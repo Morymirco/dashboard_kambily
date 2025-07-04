@@ -11,8 +11,11 @@ import { Edit, Eye, Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import WithAuth from "@/app/hoc/WithAuth"
+import { usePermissions } from "@/hooks/usePermissions"
+import { PermissionGuard } from "@/components/PermissionGuard"
 
-export default function ProduitsPage() {
+const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [filters, setFilters] = useState<ProductFiltersType>({
     search: "",
@@ -36,6 +39,7 @@ export default function ProduitsPage() {
   } = useProducts(currentPage, debouncedSearch)
   
   const deleteProductMutation = useDeleteProduct()
+  const { hasPermission } = usePermissions()
 
   // Filtrer et trier les produits côté frontend
   const filteredProducts = useMemo(() => {
@@ -194,10 +198,12 @@ export default function ProduitsPage() {
             Gérez votre catalogue de produits
           </p>
         </div>
-        <Button onClick={() => router.push("/produits/ajouter")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau Produit
-        </Button>
+        <PermissionGuard permissions={['products:create']}>
+          <Button onClick={() => router.push("/produits/ajouter")}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouveau Produit
+          </Button>
+        </PermissionGuard>
       </div>
 
       {/* Filtres de produits */}
@@ -296,20 +302,26 @@ export default function ProduitsPage() {
                   
                   {/* Actions */}
                   <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleViewProduct(product.id.toString())}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEditProduct(product.id.toString())}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDeleteProduct(product.id.toString())}
-                      disabled={deleteProductMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <PermissionGuard permissions={['products:view']}>
+                      <Button variant="outline" size="sm" onClick={() => handleViewProduct(product.id.toString())}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </PermissionGuard>
+                    <PermissionGuard permissions={['products:edit']}>
+                      <Button variant="outline" size="sm" onClick={() => handleEditProduct(product.id.toString())}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </PermissionGuard>
+                    <PermissionGuard permissions={['products:delete']}>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product.id.toString())}
+                        disabled={deleteProductMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </PermissionGuard>
                   </div>
                 </div>
               ))}
@@ -350,3 +362,5 @@ export default function ProduitsPage() {
     </div>
   )
 }
+
+export default WithAuth(ProductsPage)

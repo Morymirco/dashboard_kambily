@@ -27,6 +27,8 @@ import {
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/contexts/auth-context"
+import { usePermissions } from "@/hooks/usePermissions"
+import { PermissionGuard } from "@/components/PermissionGuard"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +50,7 @@ export default function DashboardLayout({
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const { user, logout, loading } = useAuth()
+  const { userRole } = usePermissions()
   const router = useRouter()
 
   // Fermer le sidebar sur mobile lors du changement de route
@@ -103,106 +106,124 @@ export default function DashboardLayout({
             <BarChart className="mr-3 h-5 w-5" />
             Tableau de bord
           </Link>
-          <Link
-            href="/utilisateurs"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/utilisateurs")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Users className="mr-3 h-5 w-5" />
-            Utilisateurs
-          </Link>
-          <Link
-            href="/commandes"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/commandes")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <ShoppingBag className="mr-3 h-5 w-5" />
-            Commandes
-          </Link>
-          <Link
-            href="/produits"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/produits")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Package className="mr-3 h-5 w-5" />
-            Produits
-          </Link>
-          <Link
-            href="/categories"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/categories")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Tags className="mr-3 h-5 w-5" />
-            Catégories
-          </Link>
-          <Link
-            href="/etiquettes"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/etiquettes")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Tags className="mr-3 h-5 w-5" />
-            Étiquettes
-          </Link>
-          <Link
-            href="/attributs"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/attributs")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Tag className="mr-3 h-5 w-5" />
-            Attributs
-          </Link>
-          <Link
-            href="/reviews/admin"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/reviews/admin")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <MessageSquare className="mr-3 h-5 w-5" />
-            Avis clients
-          </Link>
-          <Link
-            href="/partenaires"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/partenaires")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Handshake className="mr-3 h-5 w-5" />
-            Partenaires
-          </Link>
+          <PermissionGuard permissions={['users:view', 'users:manage']}>
+            <Link
+              href="/utilisateurs"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/utilisateurs")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Users className="mr-3 h-5 w-5" />
+              Utilisateurs
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['orders:view', 'orders:manage']}>
+            <Link
+              href="/commandes"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/commandes")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <ShoppingBag className="mr-3 h-5 w-5" />
+              Commandes
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['products:view', 'products:create', 'products:edit', 'products:delete']}>
+            <Link
+              href="/produits"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/produits")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Package className="mr-3 h-5 w-5" />
+              Produits
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['products:view', 'products:create', 'products:edit']}>
+            <Link
+              href="/categories"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/categories")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Tags className="mr-3 h-5 w-5" />
+              Catégories
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['products:view', 'products:create', 'products:edit']}>
+            <Link
+              href="/etiquettes"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/etiquettes")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Tags className="mr-3 h-5 w-5" />
+              Étiquettes
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['products:view', 'products:create', 'products:edit']}>
+            <Link
+              href="/attributs"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/attributs")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Tag className="mr-3 h-5 w-5" />
+              Attributs
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['reviews:view', 'reviews:manage']}>
+            <Link
+              href="/reviews/admin"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/reviews/admin")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <MessageSquare className="mr-3 h-5 w-5" />
+              Avis clients
+            </Link>
+          </PermissionGuard>
+          <PermissionGuard permissions={['partners:view', 'partners:manage']}>
+            <Link
+              href="/partenaires"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/partenaires")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Handshake className="mr-3 h-5 w-5" />
+              Partenaires
+            </Link>
+          </PermissionGuard>
 
-          <Link
-            href="/promocode"
-            className={`flex items-center rounded-md px-3 py-2 ${
-              isActive("/promocode")
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-          >
-            <Tags className="mr-3 h-5 w-5" />
-            Codes promo
-          </Link>
+          <PermissionGuard permissions={['promocodes:view', 'promocodes:manage']}>
+            <Link
+              href="/promocode"
+              className={`flex items-center rounded-md px-3 py-2 ${
+                isActive("/promocode")
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <Tags className="mr-3 h-5 w-5" />
+              Codes promo
+            </Link>
+          </PermissionGuard>
           <Link
             href="/parametres"
             className={`flex items-center rounded-md px-3 py-2 ${

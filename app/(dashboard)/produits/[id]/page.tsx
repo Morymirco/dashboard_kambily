@@ -196,13 +196,15 @@ const ProductDetailPage = () => {
     try {
       console.log({
         main_attribut: selectedMainAttr,
-        attribut_variante_ids: selectedAttributIds
+        attribut_variante_ids: selectedAttributIds,
+        product_variable: id
       });
       await axios.post(
         `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/viewset/attributs/reorder-attributs/`,
         {
           main_attribut: selectedMainAttr,
           attribut_variante_ids: selectedAttributIds,
+          product_variable: id
         },
         getAxiosConfig()
       );
@@ -685,6 +687,11 @@ const ProductDetailPage = () => {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">SKU</p>
                   <p className="font-medium dark:text-gray-200">{product?.sku}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground dark:text-gray-400">Slug</p>
+                  <p className="font-medium dark:text-gray-200">{product?.slug}</p>
                 </div>
 
                 <div>

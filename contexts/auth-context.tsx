@@ -377,13 +377,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = (role: string) => {
     if (!user) return false
 
+    // Normaliser le rôle pour la comparaison
+    const userRole = user.role?.toLowerCase().trim();
+    const targetRole = role.toLowerCase().trim();
+
     // Vérifier si l'utilisateur est admin
-    if (role === "admin") {
-      return !!user.role?.includes("admin")
+    if (targetRole === "admin") {
+      return userRole === "admin";
     }
 
-    // Vérifier d'autres rôles si nécessaire
-    return !!user.role?.includes(role)
+    // Vérifier d'autres rôles
+    return userRole === targetRole;
   } 
 
   const isAuthenticated = () => {
