@@ -61,19 +61,53 @@ API.interceptors.request.use(
       delete config.headers?.['Content-Type'];
     }
 
+    // Log des requêtes pour reorderAttributs
+    if (config.url?.includes('reorder-attributs')) {
+      console.log('🌐 [API Interceptor] Requête reorderAttributs:', {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        headers: config.headers,
+        data: config.data,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     return config;
   },
   (error) => {
+    console.error('❌ [API Interceptor] Erreur dans la requête:', error);
     return Promise.reject(error);
   }
 );
 
 API.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Log des réponses pour reorderAttributs
+    if (response.config.url?.includes('reorder-attributs')) {
+      console.log('🌐 [API Interceptor] Réponse reorderAttributs:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        headers: response.headers,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     return response;
   },
   async (error) => {
     const { response } = error;
+
+    // Log des erreurs pour reorderAttributs
+    if (response?.config?.url?.includes('reorder-attributs')) {
+      console.error('❌ [API Interceptor] Erreur reorderAttributs:', {
+        status: response?.status,
+        statusText: response?.statusText,
+        data: response?.data,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     if (response) {
       const { status } = response;

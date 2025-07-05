@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getAxiosConfig } from "@/constants/client"
-import { useAddImages, useDeleteImages, useDeleteProduct, useProductDetail, useDeleteVariant } from "@/hooks/api/products"
+import { useAddImages, useDeleteImages, useDeleteProduct, useProductDetail, useDeleteVariant, useReorderAttributs } from "@/hooks/api/products"
 import { ProductAttribute, ProductStats } from "@/lib/types/products"
 import axios from "axios"
 import { Calendar, ChevronLeft, Edit, Eye, Plus, Star, Trash2 } from "lucide-react"
@@ -29,6 +29,7 @@ const ProductDetailPage = () => {
   const { mutate: deleteImages } = useDeleteImages();
   const { mutate: deleteProduct, isPending: isDeletingProduct } = useDeleteProduct();
   const { mutate: deleteVariant, isPending: isDeletingVariant } = useDeleteVariant();
+  const { mutate: reorderAttributs } = useReorderAttributs();
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -192,33 +193,59 @@ const ProductDetailPage = () => {
       toast.error("Veuillez sélectionner un attribut principal et au moins un attribut.");
       return;
     }
+    
+    console.log('🚀 [handleSubmitMainAttr] Component - Début de la soumission');
+    console.log('📊 [handleSubmitMainAttr] Component - État actuel:', {
+      selectedMainAttr,
+      selectedAttributIds,
+      selectedMainAttrType,
+      autreVariantsForDialog: autreVariantsForDialog.length,
+      isSubmittingMainAttr
+    });
+    
+    // Log des variantes concernées
+    console.log('🎯 [handleSubmitMainAttr] Component - Variantes concernées:', 
+      autreVariantsForDialog.map(v => ({
+        id: v.id,
+        attributs: v.attributs?.map((a: any) => `${a.attribut.nom}: ${a.valeur}`) || []
+      }))
+    );
+    
+    // Log des attributs sélectionnés
+    const selectedAttributsDetails = autreVariantsForDialog
+      .flatMap(v => v.attributs || [])
+      .filter((attr: any) => selectedAttributIds.includes(attr.id))
+      .map((attr: any) => `${attr.attribut.nom}: ${attr.valeur} (ID: ${attr.id})`);
+    
+    console.log('🔍 [handleSubmitMainAttr] Component - Attributs sélectionnés:', selectedAttributsDetails);
+    
     setIsSubmittingMainAttr(true);
-    try {
-      console.log({
-        main_attribut: selectedMainAttr,
-        attribut_variante_ids: selectedAttributIds,
-        product_variable: id
-      });
-      await axios.post(
-        `${PROTOCOL_HTTP}://${HOST_IP}${PORT}/products/viewset/attributs/reorder-attributs/`,
-        {
-          main_attribut: selectedMainAttr,
-          attribut_variante_ids: selectedAttributIds,
-          product_variable: id
-        },
-        getAxiosConfig()
-      );
-      toast.success("Main attribut défini avec succès !");
-      setOpenMainAttrDialog(false);
-      setSelectedMainAttr(null);
-      setSelectedAttributIds([]);
-      // Optionnel : recharger les données produit
-      router.refresh && router.refresh();
-    } catch (error) {
-      toast.error("Erreur lors de la définition du main attribut.");
-    } finally {
-      setIsSubmittingMainAttr(false);
-    }
+    
+    const requestData = {
+      main_attribut: selectedMainAttr,
+      attribut_variante_ids: selectedAttributIds,
+      product_variable: id
+    };
+    
+    console.log('📤 [handleSubmitMainAttr] Component - Données à envoyer:', requestData);
+    
+    reorderAttributs(requestData, {
+      onSuccess: (responseData) => {
+        console.log('✅ [handleSubmitMainAttr] Component - Succès reçu:', responseData);
+        toast.success("Main attribut défini avec succès !");
+        setOpenMainAttrDialog(false);
+        setSelectedMainAttr(null);
+        setSelectedAttributIds([]);
+        setIsSubmittingMainAttr(false);
+        // Optionnel : recharger les données produit
+        router.refresh && router.refresh();
+      },
+      onError: (error) => {
+        console.error('❌ [handleSubmitMainAttr] Component - Erreur reçue:', error);
+        toast.error("Erreur lors de la définition du main attribut.");
+        setIsSubmittingMainAttr(false);
+      }
+    });
   };
 
   if (isLoading) {
@@ -500,7 +527,7 @@ const ProductDetailPage = () => {
 
   const handleDeleteVariant = async (variantId: number, variantName: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer la variante "${variantName}" ?`)) {
-      deleteVariant(variantId, {
+      deleteVariant(variantId.toString(), {
         onSuccess: () => {
           toast.success("Variante supprimée avec succès");
         },
@@ -516,7 +543,7 @@ const ProductDetailPage = () => {
     if (window.confirm(`Êtes-vous sûr de vouloir supprimer toutes les variantes du groupe "${groupName}" ? Cette action est irréversible.`)) {
       const deletePromises = variants.map((variant) => 
         new Promise((resolve, reject) => {
-          deleteVariant(variant.id, {
+          deleteVariant(variant.id.toString(), {
             onSuccess: () => resolve(true),
             onError: (error) => reject(error)
           });
@@ -995,7 +1022,7 @@ const ProductDetailPage = () => {
                                           )}
                                           {/* Afficher les attributs secondaires (gris), en excluant le main_attribut */}
                                           {variant.attributs && variant.attributs
-                                            .filter(attr =>
+                                            .filter((attr: any) =>
                                               !(
                                                 variant.main_attribut &&
                                                 attr.attribut.nom === variant.main_attribut.attribut.nom &&

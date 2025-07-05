@@ -213,3 +213,38 @@ export function useDeleteVariant() {
     }
   })
 }
+
+export function useReorderAttributs() {
+  const queryClient = useQueryClient()
+  const { handleError } = useApiErrorHandler()
+  
+  return useMutation({
+    mutationFn: async (data: {
+      main_attribut: number;
+      attribut_variante_ids: number[];
+      product_variable: string;
+    }) => {
+      console.log('🎣 [useReorderAttributs] Hook - Données envoyées au service:', {
+        main_attribut: data.main_attribut,
+        attribut_variante_ids: data.attribut_variante_ids,
+        product_variable: data.product_variable,
+        timestamp: new Date().toISOString()
+      });
+      
+      try {
+        return await ProductsService.reorderAttributs(data)
+      } catch (error: any) {
+        console.error('❌ [useReorderAttributs] Hook - Erreur:', error);
+        handleError(error, error.response)
+        throw error
+      }
+    },
+    onSuccess: (data) => {
+      console.log('✅ [useReorderAttributs] Hook - Succès, invalidation du cache');
+      queryClient.invalidateQueries({ queryKey: ['product-detail'] })
+    },
+    onError: (error) => {
+      console.error('❌ [useReorderAttributs] Hook - Erreur dans la mutation:', error);
+    }
+  })
+}

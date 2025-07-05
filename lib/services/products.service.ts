@@ -86,5 +86,31 @@ export const ProductsService = {
   deleteVariant : async (variantId: string) => {
     const response = await API.delete(API_ENDPOINTS.products.deleteVariant(variantId));
     return response.data;
+  },
+  reorderAttributs : async (data: {
+    main_attribut: number;
+    attribut_variante_ids: number[];
+    product_variable: string;
+  }) => {
+    console.log('🔄 [ProductsService] reorderAttributs - Données reçues:', {
+      main_attribut: data.main_attribut,
+      attribut_variante_ids: data.attribut_variante_ids,
+      product_variable: data.product_variable,
+      total_attributs: data.attribut_variante_ids.length
+    });
+    
+    const response = await API.post(
+      `${API_ENDPOINTS.products.base}viewset/attributs/reorder-attributs/`,
+      data,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      }
+    );
+    
+    console.log('✅ [ProductsService] reorderAttributs - Réponse reçue:', response.data);
+    return response.data;
   }
 }
