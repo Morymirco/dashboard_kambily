@@ -34,65 +34,16 @@ import { fetchUsers, updateUserStatus, deleteUser } from "@/services/user-servic
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { useUsers } from "@/hooks/api/users"
-
-
-const columns = [
-  {
-    key: "name",
-    label: "Nom",
-    sortable: true,
-    render: (user: User) => (
-      <div className="flex items-center gap-3">
-        <Avatar>
-          <AvatarImage src={user.image || "/placeholder.svg"} alt={`${user.first_name} ${user.last_name}`} />
-          <AvatarFallback>{user.first_name?.[0]}</AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium">{`${user.first_name} ${user.last_name}`}</p>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-        </div>
-      </div>
-    )
-  },
-  {
-    key: "phone_number",
-    label: "Téléphone",
-    sortable: true,
-    render: (user: User) => user.phone_number || "Non renseigné"
-  },
-  {
-    key: "role",
-    label: "Rôle",
-    sortable: true,
-    render: (user: User) => (
-      <Badge variant="outline" className="capitalize">
-        {user.role}
-      </Badge>
-    )
-  },
-  {
-    key: "status",
-    label: "Statut",
-    sortable: true,
-    render: (user: User) => (
-      <Badge
-        variant={user.status ? "default" : "secondary"}
-        className={user.status ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-      >
-        {user.status ? "Actif" : "Inactif"}
-      </Badge>
-    )
-  },
-  {
-    key: "created_at",
-    label: "Inscription",
-    sortable: true,
-    render: (user: User) => new Date(user.created_at).toLocaleDateString()
-  }
-]
+import { PermissionGuard } from "@/components/PermissionGuard"
+import { usePermissions } from "@/hooks/usePermissions"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog"
+import { ROLE_PERMISSIONS, UserRole } from '@/lib/types/permissions'
+import { getAxiosConfig } from "@/constants/client"
+import { API_URL } from "@/constants"
 
 export default function UtilisateursPage() {
   const router = useRouter()
+  const { hasPermission } = usePermissions()
   const [searchTerm, setSearchTerm] = useState("")
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("")
   const [users, setUsers] = useState<User[]>([])
@@ -111,6 +62,11 @@ export default function UtilisateursPage() {
 
   const { data: usersData, isLoading: isLoadingUsers } = useUsers()
 
+  // Définir la fonction ici pour qu'elle soit accessible dans columns
+  const navigateToUserDetail = (userId: number) => {
+    router.push(`/utilisateurs/${userId}`)
+  }
+
   // Effet pour le debounce de la recherche
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -126,8 +82,6 @@ export default function UtilisateursPage() {
     }
     setLoading(false)
   }, [usersData])
-
-
 
   const handleStatusChange = async (userId: number, newStatus: boolean) => {
     try {
@@ -169,10 +123,6 @@ export default function UtilisateursPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-  }
-
-  const navigateToUserDetail = (userId: number) => {
-    router.push(`/utilisateurs/${userId}`)
   }
 
   // Calcul des indices de début et de fin pour la pagination
@@ -262,6 +212,57 @@ export default function UtilisateursPage() {
     }
 
     return pageNumbers
+  }
+
+  // Liste des rôles disponibles
+  const availableRoles: { value: UserRole, label: string }[] = [
+    { value: 'admin', label: 'Admin' },
+    { value: 'manager', label: 'Manager' },
+    { value: 'product_manager', label: 'Product Manager' },
+    { value: 'marketin_gmanager', label: 'Marketing Manager' },
+    { value: 'finance_manager', label: 'Finance Manager' },
+    { value: 'client_manager', label: 'Client Manager' },
+    { value: 'logistic_manager', label: 'Logistic Manager' },
+    { value: 'customer', label: 'Client' },
+  ]
+
+  const [openDialog, setOpenDialog] = useState(false)
+  const [form, setForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: '',
+    role: 'customer',
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    try {
+      const res = await fetch(`${API_URL}/accounts/create-account/`, {
+        method: 'POST',
+        headers: {
+          ...getAxiosConfig().headers
+        },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) throw new Error('Erreur lors de la création du compte')
+      const data = await res.json()
+      toast.success(data.message || 'Compte créé avec succès')
+      setOpenDialog(false)
+      setForm({ first_name: '', last_name: '', email: '', phone_number: '', role: 'customer' })
+      // Optionnel : rafraîchir la liste
+      if (typeof window !== 'undefined') window.location.reload()
+    } catch (err: any) {
+      toast.error(err.message || 'Erreur lors de la création du compte')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (loading && users.length === 0) {
@@ -373,6 +374,108 @@ export default function UtilisateursPage() {
   // S'assurer que users est toujours un tableau
   const safeUsers = Array.isArray(users) ? users : []
 
+  const columns = [
+    {
+      key: "name",
+      label: "Nom",
+      sortable: true,
+      render: (user: User) => (
+        <div className="flex items-center gap-3">
+          <Avatar>
+            <AvatarImage src={user.image || "/placeholder.svg"} alt={`${user.first_name} ${user.last_name}`} />
+            <AvatarFallback>{user.first_name?.[0]}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{`${user.first_name} ${user.last_name}`}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: "phone_number",
+      label: "Téléphone",
+      sortable: true,
+      render: (user: User) => user.phone_number || "Non renseigné"
+    },
+    {
+      key: "role",
+      label: "Rôle",
+      sortable: true,
+      render: (user: User) => (
+        <Badge variant="outline" className="capitalize">
+          {user.role}
+        </Badge>
+      )
+    },
+    {
+      key: "status",
+      label: "Statut",
+      sortable: true,
+      render: (user: User) => (
+        <Badge
+          variant={user.status ? "default" : "secondary"}
+          className={user.status ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
+        >
+          {user.status ? "Actif" : "Inactif"}
+        </Badge>
+      )
+    },
+    {
+      key: "created_at",
+      label: "Inscription",
+      sortable: true,
+      render: (user: User) => new Date(user.created_at).toLocaleDateString()
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      sortable: false,
+      render: (user: User) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Ouvrir le menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <PermissionGuard permissions={['users:view']}>
+              <DropdownMenuItem onClick={() => navigateToUserDetail(user.id)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Voir les détails
+              </DropdownMenuItem>
+            </PermissionGuard>
+            <PermissionGuard permissions={['users:manage']}>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleStatusChange(user.id, !user.status)}>
+                {user.status ? (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Désactiver
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Activer
+                  </>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => handleDeleteUser(user.id)}
+                className="text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Supprimer
+              </DropdownMenuItem>
+            </PermissionGuard>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ]
+
   return (
     <div className="p-6">
       <Toaster position="top-right" />
@@ -381,10 +484,57 @@ export default function UtilisateursPage() {
           <h1 className="text-2xl font-bold text-foreground">Utilisateurs</h1>
           <p className="text-muted-foreground">Gérez les utilisateurs de votre plateforme</p>
         </div>
-        <Button className="bg-teal-600 hover:bg-teal-700">
-          <UserPlus className="mr-2 h-4 w-4" />
-          Ajouter un utilisateur
-        </Button>
+        <PermissionGuard permissions={['users:manage']}>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-teal-600 hover:bg-teal-700">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Ajouter un utilisateur
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Créer un nouvel utilisateur</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block mb-1 font-medium">Prénom</label>
+                    <input name="first_name" value={form.first_name} onChange={handleFormChange} required className="w-full border rounded p-2" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block mb-1 font-medium">Nom</label>
+                    <input name="last_name" value={form.last_name} onChange={handleFormChange} required className="w-full border rounded p-2" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block mb-1 font-medium">Email</label>
+                  <input name="email" type="email" value={form.email} onChange={handleFormChange} required className="w-full border rounded p-2" />
+                </div>
+                <div>
+                  <label className="block mb-1 font-medium">Téléphone</label>
+                  <input name="phone_number" value={form.phone_number} onChange={handleFormChange} required className="w-full border rounded p-2" />
+                </div>
+                <div>
+                  <label className="block mb-1 font-medium">Rôle</label>
+                  <select name="role" value={form.role} onChange={handleFormChange} required className="w-full border rounded p-2">
+                    {availableRoles.map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={isSubmitting} className="w-full">
+                    {isSubmitting ? 'Création...' : 'Créer le compte'}
+                  </Button>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">Annuler</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </PermissionGuard>
       </div>
 
       <div className="mt-6 space-y-4">

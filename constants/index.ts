@@ -1,10 +1,10 @@
 // Configuration de l'API partagée entre client et serveur
-// export const HOST_IP = "api.kambily.com"
-// export const PORT = ""
-// export const PROTOCOL_HTTP = "https"
-export const HOST_IP = '192.168.1.133'
-export const PORT = ':8000'
-export const PROTOCOL_HTTP = 'http'
+export const HOST_IP = "api.kambily.com"
+export const PORT = ""
+export const PROTOCOL_HTTP = "https"
+// export const HOST_IP = '192.168.1.133'
+// export const PORT = ':8000'
+// export const PROTOCOL_HTTP = 'http'
 export const PROTOCOL_WS = "ws"
 export const API_BASE_URL = `${PROTOCOL_HTTP}://${HOST_IP}${PORT}`
 export const API_URL = API_BASE_URL

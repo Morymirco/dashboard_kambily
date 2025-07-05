@@ -23,3 +23,16 @@ export interface UserToken {
   refresh_token: string
   user: User
 }
+
+// Type pour les détails d'un utilisateur spécifique
+export interface UserDetail {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+  phone_number: string
+  role: string
+  is_active: boolean
+  is_confirmed: boolean
+  date_joined: string
+}
