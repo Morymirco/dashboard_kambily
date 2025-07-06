@@ -140,15 +140,39 @@ export default function UtilisateursPage() {
 
   // Filtrer et trier les utilisateurs
   const filteredAndSortedUsers = useMemo(() => {
+    // Debug: Afficher les rôles disponibles dans les données
+    if (users.length > 0) {
+      console.log("🔍 Rôles disponibles dans les données:", [...new Set(users.map(u => u.role))])
+      console.log("🎯 Filtre de rôle actuel:", roleFilter)
+      console.log("📊 Nombre total d'utilisateurs:", users.length)
+      console.log("🔄 État de chargement:", { isLoadingUsers, loading })
+    }
+
     let filtered = users.filter((user) => {
       const searchString = searchTerm.toLowerCase()
-      return (
+      const matchesSearch = (
         user.first_name?.toLowerCase().includes(searchString) ||
         user.last_name?.toLowerCase().includes(searchString) ||
         user.email?.toLowerCase().includes(searchString) ||
         user.phone_number?.toLowerCase().includes(searchString)
       )
+      
+      // Filtre par rôle
+      const matchesRole = roleFilter === "all" || user.role === roleFilter
+      
+      // Debug: Afficher les détails du filtrage pour chaque utilisateur
+      if (roleFilter !== "all") {
+        console.log(`👤 ${user.first_name} ${user.last_name}: role="${user.role}", filtre="${roleFilter}", match=${matchesRole}`)
+      }
+      
+      // Filtre par statut
+      const matchesStatus = statusFilter === "all" || user.status.toString() === statusFilter
+      
+      return matchesSearch && matchesRole && matchesStatus
     })
+
+    console.log("✅ Nombre d'utilisateurs après filtrage:", filtered.length)
+    return filtered
 
     return filtered.sort((a, b) => {
       if (sortConfig.key === "name") {
@@ -170,7 +194,7 @@ export default function UtilisateursPage() {
       if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1
       return 0
     })
-  }, [users, searchTerm, sortConfig])
+  }, [users, searchTerm, sortConfig, roleFilter, statusFilter])
 
   // Pagination des résultats filtrés
   const filteredAndSortedCurrentUsers = filteredAndSortedUsers.slice(indexOfFirstItem, indexOfLastItem)
@@ -216,14 +240,15 @@ export default function UtilisateursPage() {
 
   // Liste des rôles disponibles
   const availableRoles: { value: UserRole, label: string }[] = [
-    { value: 'admin', label: 'Admin' },
+    { value: 'customer', label: 'Client' },
+    { value: 'deliverer', label: 'Livreur' },
+    { value: 'admin', label: 'Administrateur' },
     { value: 'manager', label: 'Manager' },
     { value: 'product_manager', label: 'Product Manager' },
-    { value: 'marketin_gmanager', label: 'Marketing Manager' },
-    { value: 'finance_manager', label: 'Finance Manager' },
+    { value: 'marketing_manager', label: 'Marketing Manager' },
+    { value: 'fincance_manager', label: 'Fincance Manager' },
     { value: 'client_manager', label: 'Client Manager' },
     { value: 'logistic_manager', label: 'Logistic Manager' },
-    { value: 'customer', label: 'Client' },
   ]
 
   const [openDialog, setOpenDialog] = useState(false)
@@ -232,7 +257,7 @@ export default function UtilisateursPage() {
     last_name: '',
     email: '',
     phone_number: '',
-    role: 'customer',
+    role: 'customer' as UserRole,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -255,7 +280,7 @@ export default function UtilisateursPage() {
       const data = await res.json()
       toast.success(data.message || 'Compte créé avec succès')
       setOpenDialog(false)
-      setForm({ first_name: '', last_name: '', email: '', phone_number: '', role: 'customer' })
+      setForm({ first_name: '', last_name: '', email: '', phone_number: '', role: 'customer' as UserRole })
       // Optionnel : rafraîchir la liste
       if (typeof window !== 'undefined') window.location.reload()
     } catch (err: any) {
@@ -265,7 +290,7 @@ export default function UtilisateursPage() {
     }
   }
 
-  if (loading && users.length === 0) {
+  if (isLoadingUsers || loading) {
     return (
       <div className="p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -304,7 +329,7 @@ export default function UtilisateursPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.from({ length: 5 }).map((_, index) => (
+                    {Array.from({ length: 8 }).map((_, index) => (
                       <TableRow key={index}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -562,8 +587,11 @@ export default function UtilisateursPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les rôles</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="client">Client</SelectItem>
+                    {availableRoles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -579,45 +607,7 @@ export default function UtilisateursPage() {
               </div>
             </div>
 
-            {loading ? (
-              <div className="space-y-4">
-                {/* Skeleton pour l'en-tête */}
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-8 w-[200px]" />
-                  <Skeleton className="h-10 w-[150px]" />
-                </div>
-
-                {/* Skeleton pour le tableau */}
-                <div className="border rounded-lg">
-                  <div className="divide-y">
-                    {[...Array(5)].map((_, index) => (
-                      <div key={index} className="p-4">
-                        <div className="flex items-center space-x-4">
-                          <Skeleton className="h-12 w-12 rounded-full" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-[250px]" />
-                            <Skeleton className="h-4 w-[200px]" />
-                          </div>
-                          <div className="ml-auto flex space-x-2">
-                            <Skeleton className="h-8 w-[100px]" />
-                            <Skeleton className="h-8 w-[100px]" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Skeleton pour la pagination */}
-                <div className="flex justify-center space-x-2 mt-4">
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-8 w-8" />
-                </div>
-              </div>
-            ) : safeUsers.length === 0 ? (
+            {(!isLoadingUsers && !loading && safeUsers.length === 0) ? (
               <div className="text-center p-8 bg-muted/50 rounded-lg border">
                 <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                   <UserPlus className="h-8 w-8 text-muted-foreground" />
