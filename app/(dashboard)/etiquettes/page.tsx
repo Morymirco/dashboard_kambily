@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Search, Edit, Trash2, Tag } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Tag as TagIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useTags, useCreateTag, useUpdateTag, useDeleteTag } from "@/hooks/api/tags"
+import { type Tag } from "@/services/tag-service"
 import { toast } from "react-hot-toast"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -16,14 +17,6 @@ import { useRouter } from "next/navigation"
 interface TagFormData {
   name: string
   description: string
-}
-
-interface Tag {
-  id: number
-  name: string
-  description?: string
-  products_count?: number
-  created_at: string
 }
 
 export default function EtiquettesPage() {
@@ -41,17 +34,22 @@ export default function EtiquettesPage() {
     description: ""
   })
 
-  const filteredTags = tags?.filter((tag: Tag) =>
+  console.log("tags value:", tags);
+  const tagList = Array.isArray(tags)
+    ? tags
+    : (tags && Array.isArray(tags.results) ? tags.results : []);
+
+  const filteredTags = tagList.filter((tag: Tag) =>
     tag.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     tag.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || []
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
     if (editingTag) {
       updateTag(
-        { id: editingTag.id, data: formData },
+        { id: editingTag.id.toString(), data: formData },
         {
           onSuccess: () => {
             toast.success("Étiquette modifiée avec succès")
@@ -95,7 +93,7 @@ export default function EtiquettesPage() {
 
   const handleDelete = (tagId: number) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cette étiquette ?")) {
-      deleteTag(tagId, {
+      deleteTag(tagId.toString(), {
         onSuccess: () => {
           toast.success("Étiquette supprimée avec succès")
           refetch()
@@ -176,7 +174,7 @@ export default function EtiquettesPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-teal-600" />
+                  <TagIcon className="h-4 w-4 text-teal-600" />
                   <CardTitle className="text-lg cursor-pointer hover:text-teal-600 transition-colors" 
                     onClick={() => router.push(`/etiquettes/${tag.id}`)}>
                     {tag.name}
@@ -223,7 +221,7 @@ export default function EtiquettesPage() {
 
       {filteredTags.length === 0 && (
         <div className="text-center py-12">
-          <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <TagIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">
             {searchTerm ? "Aucune étiquette trouvée" : "Aucune étiquette"}
           </h3>

@@ -35,7 +35,7 @@ export const API_ENDPOINTS = {
         addVariantImages : (variantId: string) => `${API_BASE_URL}/products/viewset/add-image-variante/${variantId}/`,
         deleteImages :  `${API_BASE_URL}/products/viewset/remove-image-variante/`,
         deleteVariant : (variantId: string) => `${API_BASE_URL}/products/viewset/variante/${variantId}/`,
-
+        simpleList: `${API_BASE_URL}/products/viewset/simple-list/`,
     },
     //ORDERS
     orders :{
@@ -89,11 +89,14 @@ export const API_ENDPOINTS = {
 
     // TAGS
     tags :{
-        base : `${API_BASE_URL}/tags/`,
-        detail : (id: string) => `${API_BASE_URL}/tags/${id}/`,
-        delete : (id: string) => `${API_BASE_URL}/tags/${id}/`,
-        update : (id: string) => `${API_BASE_URL}/tags/${id}/`,
-        add : `${API_BASE_URL}/tags/`,
+        base : `${API_BASE_URL}/tags/viewset/`,
+        detail : (id: string) => `${API_BASE_URL}/tags/viewset/${id}/`,
+        delete : (id: string) => `${API_BASE_URL}/tags/viewset/${id}/`,
+        update : (id: string) => `${API_BASE_URL}/tags/viewset/${id}/`,
+        add : `${API_BASE_URL}/tags/viewset/`,
+        products: (id: string) => `${API_BASE_URL}/tags/viewset/${id}/products/`,
+        removeFromProduct: (id: string) => `${API_BASE_URL}/tags/viewset/${id}/remove-from-product/`,
+        addToProduct: (id: string) => `${API_BASE_URL}/tags/viewset/${id}/add-to-product/`,
         //tags off
         of : `${API_BASE_URL}/tags/viewset/of/`,
     },

@@ -180,3 +180,12 @@ export async function createVariant(productId: number, data: any) {
   return response.json()
 }
 
+export const ProductService = {
+  getSimpleProductList: async (search = '', limit = 50) => {
+    const response = await API.get(API_ENDPOINTS.products.simpleList, {
+      params: { search, limit }
+    });
+    return response.data;
+  },
+}
+

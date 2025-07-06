@@ -4,6 +4,7 @@ import { ProductsService } from '@/lib/services/products.service'
 import { getAuthHeaders } from '@/lib/auth-utils'
 import type { CreateProductData, UpdateProductData } from '@/lib/types/products'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ProductService } from '@/services/product-service'
 
 export function useProducts(page = 1, search = '') {
   const { handleError } = useApiErrorHandler()
@@ -247,4 +248,19 @@ export function useReorderAttributs() {
       console.error('❌ [useReorderAttributs] Hook - Erreur dans la mutation:', error);
     }
   })
+}
+
+export function useSimpleProductList(search = '', limit = 50) {
+  const { handleError } = useApiErrorHandler();
+  return useQuery({
+    queryKey: ['simple-products', search, limit],
+    queryFn: async () => {
+      try {
+        return await ProductService.getSimpleProductList(search, limit);
+      } catch (error: any) {
+        handleError(error, error.response);
+        throw error;
+      }
+    }
+  });
 }
