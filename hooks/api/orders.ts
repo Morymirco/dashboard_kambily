@@ -57,3 +57,11 @@ export function useExportOrders() {
     }
   })
 }
+
+export function useCheckOrder() {
+  return useMutation({
+    mutationFn: async (ref: string) => {
+      return await OrdersService.checkOrder(ref)
+    }
+  })
+}

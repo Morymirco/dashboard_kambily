@@ -24,7 +24,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "react-hot-toast"
 
-import { useAcceptOrder, useOrder } from "@/hooks/api/orders"
+import { useAcceptOrder, useOrder, useCheckOrder } from "@/hooks/api/orders"
 import {
   type Attribut,
   type OrderItem as OrderItemType,
@@ -277,6 +277,7 @@ export default function OrderDetailPage() {
   // Utilisation des hooks
   const { data: order, isLoading: loading, error: queryError } = useOrder(id as string)
   const acceptOrderMutation = useAcceptOrder()
+  const checkOrderMutation = useCheckOrder()
   
   const error = queryError ? "Erreur lors de la récupération de la commande" : null
 
@@ -367,6 +368,39 @@ export default function OrderDetailPage() {
       toast.error("Impossible d'ouvrir la facture")
     } finally {
       setDownloadingInvoice(false)
+    }
+  }
+
+  const handleCheckOrder = async () => {
+    if (!order?.payement?.transaction_ref) {
+      toast.error("Aucune référence de transaction disponible pour cette commande")
+      return
+    }
+
+    try {
+      const loadingToast = toast.loading("Vérification de la commande en cours...")
+
+      const result = await checkOrderMutation.mutateAsync(order.payement.transaction_ref)
+
+      toast.dismiss(loadingToast)
+      
+      // Vérifier le code de réponse
+      if (result.code === 0) {
+        toast.success("✅ Commande validée avec succès ! Le paiement a bien été effectué.")
+      } else {
+        // Afficher le message d'erreur spécifique ou un message par défaut
+        const errorMessage = result.error_message || "La commande n'a pas été validée"
+        toast.error(`❌ ${errorMessage}`)
+      }
+      
+      // Afficher le résultat de la vérification dans la console pour debug
+      console.log("Résultat de la vérification:", result)
+      
+      // Optionnel : rafraîchir les données de la commande
+      queryClient.invalidateQueries({ queryKey: ['order', id] })
+
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la vérification de la commande")
     }
   }
 
@@ -743,6 +777,27 @@ export default function OrderDetailPage() {
                     <>
                       <Check className="mr-2 h-4 w-4" />
                       Accepter la commande
+                    </>
+                  )}
+                </button>
+              )}
+              
+              {/* Bouton de vérification de commande */}
+              {order?.payement?.transaction_ref && (
+                <button
+                  onClick={handleCheckOrder}
+                  disabled={checkOrderMutation.isPending}
+                  className="flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {checkOrderMutation.isPending ? (
+                    <>
+                      <span className="mr-2 h-4 w-4 animate-spin">⌛</span>
+                      Vérification en cours...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Vérifier la commande
                     </>
                   )}
                 </button>

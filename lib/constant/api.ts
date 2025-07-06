@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
         show : (id: string) => `${API_BASE_URL}/orders/show/admin/?number=${id}`,
         accept : (id: string) => `${API_BASE_URL}/orders/accept/admin/?number=${id}/`,
         export : `${API_BASE_URL}/orders/export/orders/`,
+        checkOrder : `${API_BASE_URL}/orders/viewset/check-order/`,
 
     },
     //CATEGORIES

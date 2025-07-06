@@ -26,5 +26,12 @@ export const OrdersService = {
   exportOrders : async () => {
     const response = await API.get(API_ENDPOINTS.orders.export);
     return response.data;
+  },
+
+  checkOrder : async (ref: string) => {
+    const response = await API.post(API_ENDPOINTS.orders.checkOrder, {
+      ref
+    });
+    return response.data;
   }
 }
