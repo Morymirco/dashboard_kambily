@@ -77,6 +77,41 @@ export default function AttributsPage() {
   const [editValueHex, setEditValueHex] = useState("")
   const [isEditValueLoading, setIsEditValueLoading] = useState(false)
 
+  // Ajout état pour les hex codes multiples (pour le type color)
+  const [colorHexCodes, setColorHexCodes] = useState<string[]>(["#ff0000"])
+
+  // Détection du type sélectionné
+  const selectedType = attributeTypes.find(type => type.id === selectedTypeId)
+  const isColorType = selectedType && selectedType.nom.toLowerCase() === "color"
+
+  // Gestion dynamique des color pickers pour le type color
+  useEffect(() => {
+    if (isColorType) {
+      // Découpe la valeur par slash, max 3
+      const values = attributeValue.split("/").map(v => v.trim()).slice(0, 3)
+      // Ajuste le nombre de color pickers
+      setColorHexCodes(prev => {
+        const arr = [...prev]
+        while (arr.length < values.length) arr.push("#ff0000")
+        return arr.slice(0, values.length)
+      })
+      // Met à jour le champ hex_code concaténé
+      setAttributeHex(colorHexCodes.slice(0, values.length).join("/"))
+    }
+    // eslint-disable-next-line
+  }, [attributeValue, isColorType])
+
+  // Quand on change un color picker
+  const handleColorHexChange = (idx: number, hex: string) => {
+    setColorHexCodes(prev => {
+      const arr = [...prev]
+      arr[idx] = hex
+      // Met à jour le champ hex_code concaténé
+      setAttributeHex(arr.join("/"))
+      return arr
+    })
+  }
+
   // Fonction pour rafraîchir la liste des types
   const fetchTypes = async () => {
     setIsLoadingTypes(true)
@@ -580,7 +615,7 @@ export default function AttributsPage() {
                   id="name"
                   value={attributeValue}
                   onChange={(e) => setAttributeValue(e.target.value)}
-                  placeholder="Ex: Rouge, Bleu, XL, etc."
+                  placeholder={isColorType ? "Ex: Rouge/Vert/Bleu (max 3)" : "Ex: Rouge, Bleu, XL, etc."}
                   required
                 />
               </div>
@@ -599,16 +634,40 @@ export default function AttributsPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <Label htmlFor="hex">Code couleur (hexadécimal, optionnel)</Label>
-                <Input
-                  id="hex"
-                  value={attributeHex}
-                  onChange={(e) => setAttributeHex(e.target.value)}
-                  placeholder="#ff0000"
-                  type="text"
-                />
-              </div>
+              {/* Color pickers dynamiques si type color */}
+              {isColorType && attributeValue.split("/").filter(v => v.trim()).length > 0 && (
+                <div>
+                  <Label>Choisissez la/les couleur(s) (max 3)</Label>
+                  <div className="flex gap-4 mt-2">
+                    {attributeValue.split("/").map((val, idx) =>
+                      val.trim() && idx < 3 ? (
+                        <div key={idx} className="flex flex-col items-center">
+                          <span className="mb-1 text-xs">{val.trim()}</span>
+                          <input
+                            type="color"
+                            value={colorHexCodes[idx] || "#ff0000"}
+                            onChange={e => handleColorHexChange(idx, e.target.value)}
+                            className="w-10 h-10 border-none bg-transparent cursor-pointer"
+                          />
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* Champ hexadécimal classique sinon */}
+              {!isColorType && (
+                <div>
+                  <Label htmlFor="hex">Code couleur (hexadécimal, optionnel)</Label>
+                  <Input
+                    id="hex"
+                    value={attributeHex}
+                    onChange={(e) => setAttributeHex(e.target.value)}
+                    placeholder="#ff0000"
+                    type="text"
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter className="mt-6">
               <Button
