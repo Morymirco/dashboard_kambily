@@ -139,6 +139,21 @@ export default function AttributsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attributes'] })
+      // Rafraîchir la liste des valeurs d'attributs
+      const refreshValues = async () => {
+        try {
+          const res = await fetch(API_ENDPOINTS.attributeValues.list, {
+            headers: getAuthHeaders(),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setAttributeValuesList(Array.isArray(data) ? data : (data.results || []))
+          }
+        } catch (err) {
+          console.error("Erreur lors du rafraîchissement des valeurs:", err)
+        }
+      }
+      refreshValues()
     },
   })
 
@@ -291,6 +306,10 @@ export default function AttributsPage() {
   const resetForm = () => {
     setFormData({ nom: "", valeurs: [""] })
     setEditingAttribute(null)
+    // Réinitialiser aussi les champs de création de valeur d'attribut
+    setAttributeValue("")
+    setAttributeHex("")
+    setSelectedTypeId(null)
   }
 
   const openCreateDialog = () => {
@@ -777,7 +796,29 @@ export default function AttributsPage() {
                       >
                         Modifier
                       </Button>
-                      <Button size="sm" variant="destructive">Supprimer</Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={async () => {
+                          if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette valeur d'attribut ?")) return;
+                          try {
+                            const res = await fetch(API_ENDPOINTS.attributeValues.delete(val.id), {
+                              method: "DELETE",
+                              headers: getAuthHeaders(),
+                            });
+                            if (!res.ok) throw new Error("Erreur lors de la suppression de la valeur d'attribut");
+                            toast.success("Valeur d'attribut supprimée avec succès");
+                            // Rafraîchir la liste
+                            const refresh = await fetch(API_ENDPOINTS.attributeValues.list, { headers: getAuthHeaders() });
+                            const refreshData = await refresh.json();
+                            setAttributeValuesList(Array.isArray(refreshData) ? refreshData : (refreshData.results || []));
+                          } catch (err) {
+                            toast.error("Erreur lors de la suppression de la valeur d'attribut");
+                          }
+                        }}
+                      >
+                        Supprimer
+                      </Button>
                     </td>
                   </tr>
                 ))}

@@ -99,6 +99,7 @@ export const API_ENDPOINTS = {
         add: `${API_BASE_URL}/attributes/values/`,
         list: `${API_BASE_URL}/attributes/of/`,
         update: (id: string | number) => `${API_BASE_URL}/attributes/values/${id}/`,
+        delete: (id: string | number) => `${API_BASE_URL}/attributes/values/${id}/`,
     },
 
     // TAGS
