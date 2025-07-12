@@ -87,6 +87,20 @@ export const API_ENDPOINTS = {
         add : `${API_BASE_URL}/products/attributes/of/`,
     },
 
+    // ATTRIBUTE TYPES
+    attributeTypes: {
+        add: `${API_BASE_URL}/attributes/attributes/`,
+        update: (id: string | number) => `${API_BASE_URL}/attributes/attributes/${id}/`,
+        delete: (id: string | number) => `${API_BASE_URL}/attributes/attributes/${id}/`,
+    },
+
+    // ATTRIBUTE VALUES
+    attributeValues: {
+        add: `${API_BASE_URL}/attributes/values/`,
+        list: `${API_BASE_URL}/attributes/of/`,
+        update: (id: string | number) => `${API_BASE_URL}/attributes/values/${id}/`,
+    },
+
     // TAGS
     tags :{
         base : `${API_BASE_URL}/tags/viewset/`,

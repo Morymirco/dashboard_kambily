@@ -150,7 +150,7 @@ export default function TagDetailPage() {
   const products = productsData?.results || []
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 mx-auto">
       <Button onClick={() => router.back()} variant="outline" className="mb-4">
         <ArrowLeft className="mr-2 h-4 w-4" /> Retour
       </Button>
@@ -167,7 +167,7 @@ export default function TagDetailPage() {
         <CardContent className="space-y-4">
           <div>
             <Badge variant="secondary" className="bg-teal-100 text-teal-800">
-              {tag.products_count || 0} produit{tag.products_count !== 1 ? 's' : ''}
+              {productsData?.count || 0} produit{productsData?.count !== 1 ? 's' : ''}
             </Badge>
           </div>
           <div className="text-sm text-muted-foreground">
@@ -182,7 +182,7 @@ export default function TagDetailPage() {
       </Card>
 
       <Card>
-        <CardHeader>
+        {/*<CardHeader>
           <div className="flex items-center gap-2 mb-2">
             <Package className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg">Produits associés</CardTitle>
@@ -235,7 +235,7 @@ export default function TagDetailPage() {
               {addTagMutation.isPending ? "Ajout..." : "Ajouter à un produit"}
             </Button>
           </form>
-        </CardHeader>
+        </CardHeader>*/}
         <CardContent>
           {isLoadingProducts ? (
             <div className="flex flex-col gap-2">
@@ -278,6 +278,14 @@ export default function TagDetailPage() {
                         }}
                       >
                         {removeTagMutation.isPending ? "Suppression..." : "Retirer l'étiquette"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2"
+                        onClick={() => router.push(`/produits/${product.id}`)}
+                      >
+                        Détail
                       </Button>
                     </div>
                   </div>

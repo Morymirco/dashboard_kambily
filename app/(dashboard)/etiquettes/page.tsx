@@ -207,9 +207,9 @@ export default function EtiquettesPage() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-teal-100 text-teal-800">
+                {/*<Badge variant="secondary" className="bg-teal-100 text-teal-800">
                   {tag.products_count || 0} produit{tag.products_count !== 1 ? 's' : ''}
-                </Badge>
+                </Badge>*/}
                 <span className="text-sm text-muted-foreground">
                   {new Date(tag.created_at).toLocaleDateString('fr-FR')}
                 </span>
